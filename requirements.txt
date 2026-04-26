@@ -1,0 +1,9 @@
+# RAG 知识库 Demo 依赖
+streamlit>=1.30.0
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-openai>=0.1.0
+langchain-text-splitters>=0.2.0
+chromadb>=0.4.0
+pypdf>=4.0.0
+python-dotenv>=1.0.0
