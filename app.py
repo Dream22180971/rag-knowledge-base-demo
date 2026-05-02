@@ -19,7 +19,7 @@ from rag_pipeline_faiss import (
     split_documents,
 )
 from upload_handler import persist_uploaded_document
-from ui_styles import hero_html, inject_enterprise_theme
+from ui_styles import hero_html, inject_enterprise_theme, shell_header_html
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 KNOWLEDGE_DIR = os.path.join(PROJECT_ROOT, "knowledge")
@@ -39,9 +39,9 @@ inject_enterprise_theme()
 with st.sidebar:
     st.markdown(
         """
-<p class="ek-sidebar-brand">Knowledge Console</p>
+<p class="ek-sidebar-brand">Workspace</p>
 <p class="ek-sidebar-product">知识库控制台</p>
-<p class="ek-hint">文档接入 · 向量索引 · 坐席对话</p>
+<p class="ek-hint">文档接入 · 向量索引 · 智能问答</p>
         """,
         unsafe_allow_html=True,
     )
@@ -66,6 +66,7 @@ with st.sidebar:
         glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.md"), recursive=True)
         + glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.txt"), recursive=True)
         + glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.pdf"), recursive=True)
+        + glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.docx"), recursive=True)
     )
     st.caption(f"知识库文件：{len(files)} 个")
     st.caption(
@@ -76,11 +77,12 @@ with st.sidebar:
     st.divider()
     st.markdown("**文档接入**")
     st.caption(
-        "支持 PDF / MD / TXT。清洗后保存至 `knowledge/texts/uploads/`。不含 OCR；导入后需 **重建索引**。"
+        "支持 PDF / Word(docx) / MD / TXT；清洗后写入 `texts/uploads/`。"
+        "扫描版 PDF 无文字层时仍无法抽取（无 OCR）；导入后请 **重建索引**。"
     )
     uploaded_file = st.file_uploader(
         "选择文件",
-        type=["pdf", "md", "txt", "markdown"],
+        type=["pdf", "docx", "md", "txt", "markdown"],
         accept_multiple_files=False,
         label_visibility="collapsed",
     )
@@ -149,6 +151,18 @@ with st.sidebar:
 # Main
 # ============================================================
 meta_main = get_index_meta()
+_idx_ok = meta_main is not None and meta_main.get("chunk_count", 0) > 0
+st.markdown(
+    shell_header_html(
+        suite_logo="Knowledge Studio",
+        suite_name="企业知识工作台",
+        tagline="智能问答 · 引用溯源 · 多轮会话",
+        status_text="系统运行正常 · 索引就绪" if _idx_ok else "等待首次构建索引",
+        status_ok=_idx_ok,
+    ),
+    unsafe_allow_html=True,
+)
+
 _badge_list = [
     ("RAG", "primary"),
     ("多轮对话", "muted"),

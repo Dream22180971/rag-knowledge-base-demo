@@ -6,7 +6,7 @@
 ## ✨ 功能特性
 
 - **多格式文档**：`knowledge/texts/` 下 Markdown、TXT；`knowledge/pdfs/` 下 PDF（可选）
-- **上传 + 自动清洗**：侧栏上传 PDF/MD/TXT，经规则清洗后写入 `knowledge/texts/uploads/`（无 OCR，复杂版式不还原）
+- **上传 + 自动清洗**：侧栏上传 **PDF / Word(docx) / MD / TXT**，规则清洗后写入 `texts/uploads/`。PDF 使用 **PyMuPDF + pypdf** 双引擎抽取（优于单一 PyPDF）；**扫描版整图 PDF 仍可能无文字层**，需 OCR 或先导出可复制文本的 PDF（本仓库不含 OCR）
 - **加载时清洗**：`load_documents` 默认对正文做与上传一致的轻量清洗（`CLEAN_DOCUMENTS_ON_LOAD=0` 可关）
 - **多厂商对话模型**：`llm_providers` 统一入口，默认 **阿里通义**；可切换智谱、月之暗面（OpenAI 兼容）、**字节方舟/豆包等**（`LLM_PROVIDER=openai_compatible` + 兼容 Base URL）。**向量嵌入仍固定 DashScope**，换嵌入须重建索引
 - **递归切片**：`RecursiveCharacterTextSplitter`，控制块大小与重叠以平衡召回

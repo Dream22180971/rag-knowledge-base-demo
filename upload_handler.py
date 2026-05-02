@@ -1,11 +1,13 @@
 """
-处理 Streamlit 上传：解析 PDF/MD/TXT，经清洗后写入 knowledge/texts/uploads/。
+处理 Streamlit 上传：解析 PDF / Word / MD / TXT，经清洗后写入 knowledge/texts/uploads/。
+PDF 使用 PyMuPDF + pypdf 双引擎；不含 OCR。
 """
 import os
 import re
 from datetime import datetime
 
 from document_cleaning import clean_text
+from text_extract import extract_docx_bytes, extract_pdf_bytes
 
 
 def _safe_stem(name: str, max_len: int = 80) -> str:
@@ -20,8 +22,6 @@ def persist_uploaded_document(file_bytes: bytes, original_name: str, dest_dir: s
     将上传内容清洗后保存为 UTF-8 Markdown。
     返回写入的文件绝对路径。
     """
-    from langchain_community.document_loaders import PyPDFLoader
-
     os.makedirs(dest_dir, exist_ok=True)
     _, ext = os.path.splitext(original_name)
     ext = ext.lower()
@@ -29,24 +29,22 @@ def persist_uploaded_document(file_bytes: bytes, original_name: str, dest_dir: s
     stem = _safe_stem(original_name)
 
     if ext == ".pdf":
-        tmp = os.path.join(dest_dir, f"_tmp_{ts}.pdf")
-        try:
-            with open(tmp, "wb") as f:
-                f.write(file_bytes)
-            docs = PyPDFLoader(tmp).load()
-        finally:
-            if os.path.isfile(tmp):
-                os.remove(tmp)
-        parts = [clean_text(d.page_content) for d in docs]
-        text = "\n\n".join(p for p in parts if p)
+        raw = extract_pdf_bytes(file_bytes)
+        text = clean_text(raw)
     elif ext in (".md", ".txt", ".markdown"):
-        text = file_bytes.decode("utf-8", errors="replace")
-        text = clean_text(text)
+        text = clean_text(file_bytes.decode("utf-8", errors="replace"))
+    elif ext == ".docx":
+        raw = extract_docx_bytes(file_bytes)
+        text = clean_text(raw)
     else:
-        raise ValueError("仅支持扩展名：.pdf .md .txt .markdown")
+        raise ValueError("仅支持：.pdf .docx .md .txt .markdown")
 
-    if not text:
-        raise ValueError("清洗后正文为空，请检查文件是否损坏或仅含图片（当前不支持 OCR）。")
+    if not text.strip():
+        raise ValueError(
+            "未能从文件中抽取到可读正文。"
+            "若为扫描版 PDF（整页图片）、加密 PDF 或损坏文件，请先导出为可复制文字的 PDF，"
+            "或使用 Word/Markdown 文本；本系统不包含 OCR。"
+        )
 
     out_name = f"{ts}_{stem}.md"
     out_path = os.path.join(dest_dir, out_name)

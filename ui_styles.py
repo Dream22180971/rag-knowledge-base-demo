@@ -1,4 +1,4 @@
-"""企业级控制台视觉样式：注入自定义 CSS（与 Streamlit 默认主题叠加）。"""
+"""浅色企业工作台视觉（参考 DocMind 信息层级，非暗黑主题）。"""
 
 import html
 from typing import List, Tuple
@@ -10,95 +10,186 @@ def inject_enterprise_theme() -> None:
     st.markdown(
         """
 <style>
-  /* —— 全局 —— */
-  .main .block-container {
-    padding-top: 1.25rem;
-    padding-bottom: 3rem;
-    max-width: 1080px;
+  html, body, .stApp {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC",
+      "Microsoft YaHei", sans-serif !important;
   }
+
   #MainMenu { visibility: hidden; }
   footer { visibility: hidden; }
-  header[data-testid="stHeader"] {
-    background: rgba(255,255,255,0.85);
-    backdrop-filter: blur(8px);
+
+  .main .block-container {
+    padding-top: 1rem;
+    padding-bottom: 3rem;
+    max-width: 1120px;
   }
 
-  /* —— 主区背景 —— */
+  /* 整体：浅灰画布 */
   .stApp {
-    background: linear-gradient(165deg, #eef2f7 0%, #f8fafc 45%, #f1f5f9 100%);
+    background: linear-gradient(180deg, #f5f7fb 0%, #f1f5f9 35%, #eef2f7 100%);
   }
 
-  /* —— 侧栏：深色控制台风 —— */
+  header[data-testid="stHeader"] {
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e8ecf2;
+  }
+
+  /* —— 浅色侧栏（控制台） —— */
   [data-testid="stSidebar"] {
-    background: linear-gradient(195deg, #0f172a 0%, #1e293b 52%, #0f172a 100%) !important;
-    border-right: 1px solid rgba(148, 163, 184, 0.15);
+    background: #fafbfc !important;
+    border-right: 1px solid #e5e7eb !important;
+    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.04);
   }
   [data-testid="stSidebar"] .block-container {
-    padding-top: 1.5rem;
-    color: #e2e8f0;
+    padding-top: 1.35rem;
+    color: #334155 !important;
   }
   [data-testid="stSidebar"] p,
   [data-testid="stSidebar"] span,
   [data-testid="stSidebar"] label,
   [data-testid="stSidebar"] .stMarkdown {
-    color: #cbd5e1 !important;
+    color: #475569 !important;
   }
   [data-testid="stSidebar"] .stCaption {
-    color: #94a3b8 !important;
-  }
-  [data-testid="stSidebar"] h1,
-  [data-testid="stSidebar"] h2,
-  [data-testid="stSidebar"] h3 {
-    color: #f8fafc !important;
-    font-weight: 600;
-    letter-spacing: -0.02em;
+    color: #64748b !important;
   }
   [data-testid="stSidebar"] hr {
-    border-color: rgba(148, 163, 184, 0.25);
+    border-color: #e5e7eb !important;
+    margin: 1rem 0;
+  }
+  [data-testid="stSidebar"] section[data-testid="stSidebarNav"] {
+    color: #1e293b;
   }
   [data-testid="stSidebar"] [data-baseweb="textarea"],
   [data-testid="stSidebar"] input {
-    background-color: rgba(15, 23, 42, 0.6) !important;
-    color: #f1f5f9 !important;
-    border-radius: 8px !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
   }
   [data-testid="stSidebar"] .stAlert {
-    background-color: rgba(30, 41, 59, 0.85) !important;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 10px;
-  }
-  [data-testid="stSidebar"] .stSuccess {
-    background: rgba(22, 101, 52, 0.35) !important;
-    border: 1px solid rgba(74, 222, 128, 0.35);
-  }
-  [data-testid="stSidebar"] .stWarning {
-    background: rgba(120, 53, 15, 0.35) !important;
-    border: 1px solid rgba(251, 191, 36, 0.35);
+    border-radius: 12px !important;
+    border-width: 1px !important;
   }
 
-  /* 侧栏主按钮 */
   [data-testid="stSidebar"] button[kind="primary"] {
-    background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%) !important;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
     border: none !important;
-    border-radius: 10px !important;
+    border-radius: 11px !important;
     font-weight: 600 !important;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.28);
+    color: #fff !important;
   }
   [data-testid="stSidebar"] button[kind="secondary"] {
-    background: rgba(51, 65, 85, 0.6) !important;
-    color: #e2e8f0 !important;
-    border: 1px solid rgba(148, 163, 184, 0.25) !important;
-    border-radius: 10px !important;
+    background: #ffffff !important;
+    color: #334155 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 11px !important;
+    font-weight: 500 !important;
+  }
+  [data-testid="stSidebar"] button[kind="secondary"]:hover {
+    border-color: #93c5fd !important;
+    background: #eff6ff !important;
   }
 
-  /* —— 自定义 HTML 块 —— */
+  /* —— 顶栏条（DocMind 式信息架构） —— */
+  .ek-shell-wrap {
+    margin-bottom: 1rem;
+  }
+  .ek-shell-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding-bottom: 1rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid #e8ecf2;
+  }
+  .ek-shell-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .ek-shell-logo {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin: 0;
+  }
+  .ek-shell-product {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .ek-shell-tagline {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: 0;
+  }
+  .ek-shell-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    border: 1px solid #bbf7d0;
+    background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+    color: #047857;
+    box-shadow: 0 1px 4px rgba(16, 185, 129, 0.12);
+  }
+  .ek-shell-status.warn {
+    border-color: #fcd34d;
+    background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+    color: #b45309;
+  }
+  .ek-shell-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+    animation: ek-pulse 2.5s ease-in-out infinite;
+  }
+  .ek-shell-status.warn .ek-shell-dot {
+    background: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+    animation: none;
+  }
+  @keyframes ek-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.65; }
+  }
+
+  /* Hero 卡片 */
   .ek-hero {
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.35rem 1.5rem 1.15rem 1.5rem;
-    margin-bottom: 1.15rem;
-    box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+    position: relative;
+    background: linear-gradient(145deg, #ffffff 0%, #fafcff 50%, #ffffff 100%);
+    border: 1px solid #e8ecf2;
+    border-radius: 18px;
+    padding: 1.25rem 1.45rem 1.15rem 1.45rem;
+    margin-bottom: 1.1rem;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 12px 40px rgba(59, 130, 246, 0.06);
+    overflow: hidden;
+  }
+  .ek-hero::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: 18px 0 0 18px;
+    background: linear-gradient(180deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
   }
   .ek-hero-top {
     display: flex;
@@ -106,121 +197,144 @@ def inject_enterprise_theme() -> None:
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
+    padding-left: 0.35rem;
   }
   .ek-hero-title {
-    font-size: 1.55rem;
+    font-size: 1.48rem;
     font-weight: 700;
     color: #0f172a;
-    letter-spacing: -0.03em;
-    line-height: 1.25;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
     margin: 0;
   }
   .ek-hero-sub {
     color: #64748b;
-    font-size: 0.92rem;
-    margin: 0.4rem 0 0 0;
-    line-height: 1.5;
+    font-size: 0.93rem;
+    margin: 0.38rem 0 0 0;
+    line-height: 1.55;
+    padding-left: 0.05rem;
   }
   .ek-badges {
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
     justify-content: flex-end;
+    align-items: flex-start;
   }
   .ek-badge {
     display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 0.28rem 0.55rem;
-    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.32rem 0.62rem;
+    border-radius: 8px;
     background: #eff6ff;
     color: #1d4ed8;
     border: 1px solid #bfdbfe;
   }
   .ek-badge-muted {
-    background: #f1f5f9;
+    background: #f8fafc;
     color: #475569;
     border-color: #e2e8f0;
+    font-weight: 600;
+    letter-spacing: 0.03em;
   }
 
-  .ek-panel {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    padding: 1rem 1.15rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
-  }
   .ek-section-title {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 700;
     color: #64748b;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin: 0 0 0.65rem 0;
+    letter-spacing: 0.1em;
+    margin: 0 0 0.75rem 0;
   }
+
   .ek-sidebar-brand {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: #64748b !important;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.25rem;
   }
   .ek-sidebar-product {
-    font-size: 1.05rem;
+    font-size: 1.06rem;
     font-weight: 700;
-    color: #f8fafc !important;
-    margin: 0 0 0.15rem 0;
+    color: #0f172a !important;
+    margin: 0 0 0.2rem 0;
     letter-spacing: -0.02em;
   }
   .ek-hint {
     font-size: 0.8rem;
-    color: #94a3b8;
-    line-height: 1.45;
+    color: #64748b !important;
+    line-height: 1.5;
   }
 
-  /* 主区 expander */
   .streamlit-expanderHeader {
     font-weight: 600 !important;
     color: #334155 !important;
   }
 
-  /* 聊天气泡区域微调 */
   [data-testid="stChatMessage"] {
-    background-color: rgba(255, 255, 255, 0.92) !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 12px !important;
+    background: #ffffff !important;
+    border: 1px solid #e8ecf2 !important;
+    border-radius: 14px !important;
     margin-bottom: 0.65rem !important;
-    box-shadow: 0 1px 8px rgba(15, 23, 42, 0.04);
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.045);
   }
 
-  /* Chat input 圆角 */
   [data-testid="stChatInput"] textarea {
-    border-radius: 12px !important;
-    border: 1px solid #cbd5e1 !important;
+    border-radius: 14px !important;
+    border: 1px solid #d8dee9 !important;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
   }
 
-  /* 快捷问题按钮：次级轮廓风 */
   div[data-testid="column"] button {
-    border-radius: 10px !important;
+    border-radius: 11px !important;
     font-weight: 500 !important;
-    border: 1px solid #cbd5e1 !important;
+    border: 1px solid #e2e8f0 !important;
     background: #ffffff !important;
     color: #334155 !important;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    padding-top: 0.65rem !important;
+    padding-bottom: 0.65rem !important;
+    transition: all 0.18s ease;
   }
   div[data-testid="column"] button:hover {
     border-color: #3b82f6 !important;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.14);
     color: #1e40af !important;
+    transform: translateY(-1px);
   }
 </style>
         """,
         unsafe_allow_html=True,
     )
+
+
+def shell_header_html(
+    suite_logo: str,
+    suite_name: str,
+    tagline: str,
+    status_text: str,
+    status_ok: bool,
+) -> str:
+    """顶栏：产品线 + 运行状态（浅色胶囊）。"""
+    status_cls = "ek-shell-status" if status_ok else "ek-shell-status warn"
+    return f"""
+<div class="ek-shell-wrap">
+  <div class="ek-shell-bar">
+    <div class="ek-shell-left">
+      <p class="ek-shell-logo">{html.escape(suite_logo)}</p>
+      <p class="ek-shell-product">{html.escape(suite_name)}</p>
+      <p class="ek-shell-tagline">{html.escape(tagline)}</p>
+    </div>
+    <div class="{status_cls}">
+      <span class="ek-shell-dot"></span>
+      <span>{html.escape(status_text)}</span>
+    </div>
+  </div>
+</div>
+"""
 
 
 def hero_html(
@@ -230,7 +344,6 @@ def hero_html(
     tagline: str,
     badges: List[Tuple[str, str]],
 ) -> str:
-    """badges: (label, variant) variant: primary | muted"""
     parts = []
     for label, variant in badges:
         cls = "ek-badge" if variant == "primary" else "ek-badge ek-badge-muted"

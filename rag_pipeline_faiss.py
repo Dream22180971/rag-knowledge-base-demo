@@ -22,36 +22,63 @@ META_PATH = os.path.join(INDEX_DIR, "meta.json")
 # 1. 文档加载
 # ============================================================
 def load_documents(directory: str = "./knowledge", progress_callback=None):
-    from langchain_community.document_loaders import PyPDFLoader, TextLoader
+    from langchain_community.document_loaders import TextLoader
+    from langchain_core.documents import Document
     import glob
-    
+
+    from text_extract import extract_docx_bytes, extract_pdf_bytes
+
     documents = []
-    
-    # PDF
+
+    # PDF（PyMuPDF + pypdf，优于单一 PyPDFLoader）
     pdf_dir = os.path.join(directory, "pdfs")
     if os.path.exists(pdf_dir):
         pdf_files = glob.glob(os.path.join(pdf_dir, "**/*.pdf"), recursive=True)
         for i, f in enumerate(pdf_files):
             try:
                 if progress_callback:
-                    progress_callback(f"加载 PDF: {os.path.basename(f)}", i/len(pdf_files)*0.3)
-                documents.extend(PyPDFLoader(f).load())
+                    progress_callback(f"加载 PDF: {os.path.basename(f)}", i / max(len(pdf_files), 1) * 0.25)
+                with open(f, "rb") as fp:
+                    raw = fp.read()
+                txt = extract_pdf_bytes(raw).strip()
+                if txt:
+                    documents.append(Document(page_content=txt, metadata={"source": f}))
+                else:
+                    print(f"[!] PDF 无文本（可能为扫描件）: {f}")
             except Exception as e:
                 print(f"[!] PDF load failed {f}: {e}")
-    
-    # MD + TXT
+
+    # MD + TXT + DOCX
     text_dir = os.path.join(directory, "texts")
     if os.path.exists(text_dir):
         md_files = glob.glob(os.path.join(text_dir, "**/*.md"), recursive=True)
         txt_files = glob.glob(os.path.join(text_dir, "**/*.txt"), recursive=True)
+        docx_files = glob.glob(os.path.join(text_dir, "**/*.docx"), recursive=True)
         all_text_files = md_files + txt_files
+        n_txt = len(all_text_files)
         for i, f in enumerate(all_text_files):
             try:
                 if progress_callback:
-                    progress_callback(f"加载文本: {os.path.basename(f)}", 0.3 + i/len(all_text_files)*0.2)
+                    progress_callback(
+                        f"加载文本: {os.path.basename(f)}",
+                        0.28 + i / max(n_txt, 1) * 0.12,
+                    )
                 documents.extend(TextLoader(f, encoding="utf-8").load())
             except Exception as e:
                 print(f"[!] Text load failed {f}: {e}")
+        for i, f in enumerate(docx_files):
+            try:
+                if progress_callback:
+                    progress_callback(
+                        f"加载 Word: {os.path.basename(f)}",
+                        0.4 + i / max(len(docx_files), 1) * 0.1,
+                    )
+                with open(f, "rb") as fp:
+                    txt = extract_docx_bytes(fp.read()).strip()
+                if txt:
+                    documents.append(Document(page_content=txt, metadata={"source": f}))
+            except Exception as e:
+                print(f"[!] DOCX load failed {f}: {e}")
     
     if os.getenv("CLEAN_DOCUMENTS_ON_LOAD", "1").strip() not in ("0", "false", "False"):
         documents = clean_document_pages(documents)
