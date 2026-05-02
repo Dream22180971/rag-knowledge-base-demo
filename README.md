@@ -86,6 +86,7 @@ rag-knowledge-base-demo/
 ├── config.py               # 品牌与检索参数
 ├── document_cleaning.py    # 文本清洗
 ├── upload_handler.py       # 上传落盘
+├── ui_styles.py            # 企业级界面 CSS 与顶栏 HTML
 ├── llm_providers.py        # 对话模型工厂（默认通义）
 ├── rag_pipeline_faiss.py   # RAG 流水线
 ├── requirements.txt

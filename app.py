@@ -3,6 +3,7 @@
 支持多轮对话：底部输入框常驻，上文传入模型与检索增强。
 """
 import glob
+import html
 import os
 
 import streamlit as st
@@ -18,6 +19,7 @@ from rag_pipeline_faiss import (
     split_documents,
 )
 from upload_handler import persist_uploaded_document
+from ui_styles import hero_html, inject_enterprise_theme
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 KNOWLEDGE_DIR = os.path.join(PROJECT_ROOT, "knowledge")
@@ -29,36 +31,52 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+inject_enterprise_theme()
 
 # ============================================================
 # Sidebar
 # ============================================================
 with st.sidebar:
-    st.header("运维与知识库")
-    st.markdown(f"**品牌（演示）** · {KB_BRAND_NAME}")
-    st.caption(f"覆盖场景：{KB_SCENE_DESC}")
+    st.markdown(
+        """
+<p class="ek-sidebar-brand">Knowledge Console</p>
+<p class="ek-sidebar-product">知识库控制台</p>
+<p class="ek-hint">文档接入 · 向量索引 · 坐席对话</p>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("---")
+
+    st.caption("当前知识域")
+    st.markdown(
+        f'<p class="ek-sidebar-product" style="font-size:1rem;margin-top:0;">{html.escape(KB_BRAND_NAME)}</p>',
+        unsafe_allow_html=True,
+    )
+    st.caption(f"业务场景：{KB_SCENE_DESC}")
 
     meta = get_index_meta()
     if meta:
         st.success(
-            f"索引可用 · **{meta['chunk_count']}** 片段 · 构建于 `{meta.get('built_at', '')}`"
+            f"**索引正常** · {meta['chunk_count']} 条片段  \n`{meta.get('built_at', '')}`"
         )
     else:
-        st.warning("尚未构建向量索引，请先点击下方按钮完成首次索引。")
+        st.warning("尚未构建索引，请完成首次构建。")
 
     files = (
         glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.md"), recursive=True)
         + glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.txt"), recursive=True)
         + glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.pdf"), recursive=True)
     )
-    st.caption(f"已扫描知识库文件：**{len(files)}** 个")
-    st.caption(describe_active_provider() + " · 向量嵌入：DashScope（换嵌入模型须重建索引）")
+    st.caption(f"知识库文件：{len(files)} 个")
+    st.caption(
+        describe_active_provider()
+        + "  \n嵌入：DashScope（更换嵌入模型后请重建索引）"
+    )
 
     st.divider()
-    st.subheader("文档上传（自动清洗）")
+    st.markdown("**文档接入**")
     st.caption(
-        "支持 PDF / MD / TXT：抽取正文后规范化空白与换行，保存到 `knowledge/texts/uploads/`。"
-        "PDF 无 OCR；上传后请 **重新构建索引**。"
+        "支持 PDF / MD / TXT。清洗后保存至 `knowledge/texts/uploads/`。不含 OCR；导入后需 **重建索引**。"
     )
     uploaded_file = st.file_uploader(
         "选择文件",
@@ -66,7 +84,7 @@ with st.sidebar:
         accept_multiple_files=False,
         label_visibility="collapsed",
     )
-    if uploaded_file is not None and st.button("导入知识库（清洗并保存）", use_container_width=True):
+    if uploaded_file is not None and st.button("导入并清洗", use_container_width=True):
         try:
             saved = persist_uploaded_document(
                 uploaded_file.getvalue(),
@@ -75,14 +93,13 @@ with st.sidebar:
             )
             reset_vectorstore_cache()
             st.success(
-                f"已写入 `{os.path.basename(saved)}`。请点击下方 **重新构建索引** 后新知识方可被检索。"
+                f"已保存 ` {os.path.basename(saved)} `。请 **重建索引** 后生效。"
             )
         except Exception as e:
             st.error(f"导入失败：{e}")
 
     st.divider()
-
-    if st.button("重新构建索引", type="primary", use_container_width=True):
+    if st.button("重建索引", type="primary", use_container_width=True):
         progress_bar = st.progress(0)
         status_text = st.empty()
 
@@ -91,63 +108,77 @@ with st.sidebar:
             status_text.text(msg)
 
         try:
-            with st.spinner("构建中…"):
+            with st.spinner("正在构建…"):
                 update_progress("扫描文档…", 0)
                 docs = load_documents(KNOWLEDGE_DIR, progress_callback=update_progress)
                 if not docs:
-                    st.warning(f"未加载到任何文档，请检查目录：{KNOWLEDGE_DIR}")
+                    st.warning(f"未找到文档，请检查：{KNOWLEDGE_DIR}")
                 else:
                     chunks = split_documents(docs, progress_callback=update_progress)
                     build_index(chunks, progress_callback=update_progress)
-                    st.success(f"索引完成，共 **{len(chunks)}** 个文本块。")
+                    st.success(f"完成，共 **{len(chunks)}** 个文本块。")
                     st.rerun()
         except Exception as e:
             st.error(f"构建失败：{e}")
 
-    if st.button("清空会话", use_container_width=True):
+    if st.button("清空对话", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
 
     st.divider()
-    st.markdown(
-        """
-**本地调试步骤**
-1. `copy .env.example .env` 并填写 `DASHSCOPE_API_KEY`
-2. `pip install -r requirements.txt`
-3. `streamlit run app.py` 或双击 `start_app.bat`
-4. 首次使用点击 **重新构建索引**
-        """
-    )
+    with st.expander("环境说明", expanded=False):
+        st.markdown(
+            """
+1. 复制 `.env.example` 为 `.env` 并配置 `DASHSCOPE_API_KEY`  
+2. `pip install -r requirements.txt`  
+3. `streamlit run app.py` 或 `start_app.bat`  
+4. 首次需 **重建索引**
+            """
+        )
 
-    debug = st.checkbox("调试模式（显示路径与片段预览）", value=False)
+    debug = st.checkbox("调试模式（路径 / 元数据）", value=False)
 
     if debug:
         st.code(f"KNOWLEDGE_DIR =\n{KNOWLEDGE_DIR}", language="text")
         if meta:
             st.json(meta)
         if files:
-            st.text("文件列表：\n" + "\n".join(os.path.basename(f) for f in sorted(files)))
+            st.text("文件：\n" + "\n".join(os.path.basename(f) for f in sorted(files)))
 
 # ============================================================
 # Main
 # ============================================================
-st.title(f"{PAGE_ICON} {PAGE_TITLE}")
-st.caption(
-    f"{KB_BRAND_NAME} · LangChain · FAISS · {describe_active_provider()} · "
-    f"向量 DashScope · RAG · 多轮对话 · 上传清洗"
+meta_main = get_index_meta()
+_badge_list = [
+    ("RAG", "primary"),
+    ("多轮对话", "muted"),
+    ("DashScope 向量", "muted"),
+]
+if meta_main:
+    _badge_list.insert(0, (f"{meta_main['chunk_count']} 条索引", "primary"))
+else:
+    _badge_list.insert(0, ("待构建索引", "muted"))
+
+st.markdown(
+    hero_html(
+        PAGE_ICON,
+        PAGE_TITLE,
+        KB_BRAND_NAME,
+        "企业知识智能应答与引用溯源",
+        _badge_list,
+    ),
+    unsafe_allow_html=True,
 )
 
-with st.expander("关于本助手（企业级演示说明）", expanded=False):
+with st.expander("产品说明与使用边界", expanded=False):
     st.markdown(
         f"""
-本助手面向 **企业电商客服知识库** 场景：基于 **{KB_BRAND_NAME}** 虚构政策文档进行问答演示，
-知识范围限定为已入库的 Markdown（售前、配送退换、售后客诉）。回答须引用库内依据；超出范围时应提示用户转人工。
+**定位**：面向企业电商 **客服与坐席** 的知识检索与辅助应答，知识范围以已入库文档为准；事实须可溯源，超范围应引导人工。
 
-支持 **连续多轮提问**（如「那不满 99 元呢？」）：底部输入框会始终显示；模型会结合上文理解指代，检索亦会参考最近几轮以提升召回。
+**能力**：多轮追问、轻量 **自动清洗** 与 **文档上传**、FAISS 语义检索、带引用生成。  
+**非本版范围**：混合检索 + 专业 Rerank、OCR/复杂版式、图谱、多租户与审计（可作为后续规划）。
 
-侧栏支持 **文档上传 + 自动清洗**（轻量规则，非 OCR）；招聘 JD 中较重的混合检索 / Rerank / 图谱 / 多租户等未在本演示实现，可作为扩展叙述。
-
-**非生产环境**：无账号体系、无工单对接；上线前请替换为真实知识源并完成安全与合规评审。
+**合规提示**：本实例为内网/演示环境配置；生产环境需完成安全、数据与内容合规评审。
         """
     )
 
@@ -161,18 +192,16 @@ example_questions = [
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 先渲染已有对话（仅文本；来源展开仅在当轮生成时展示）
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# 当最后一条来自用户、尚未生成助手回复时，在本轮完成 RAG
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     user_text = st.session_state.messages[-1]["content"]
     history = st.session_state.messages[:-1]
 
     with st.chat_message("assistant"):
-        with st.spinner("检索知识库并生成回答…"):
+        with st.spinner("正在检索知识库并生成回答…"):
             try:
                 result = rag_pipeline(
                     user_text,
@@ -200,30 +229,30 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
             response_text = result["answer"]
 
             with st.expander(
-                f"参考来源（{len(result['sources'])} 条）· 相似度分数越低通常越相关（内积/L2 依索引而定）"
+                f"参考来源 · {len(result['sources'])} 条（score 依距离定义，越低或越高表示越相关视度量而定）"
             ):
                 for i, src in enumerate(result["sources"], 1):
                     preview = src["content"][:500] + (
                         "…" if len(src["content"]) > 500 else ""
                     )
                     st.markdown(
-                        f"**[{i}]** `{src['source']}` · score=`{src['score']}`\n\n> {preview}"
+                        f"**[{i}]** `{src['source']}` · `{src['score']}`\n\n> {preview}"
                     )
                     st.divider()
 
-            st.caption(f"耗时：{result['elapsed_ms']} ms")
+            st.caption(f"响应耗时 {result['elapsed_ms']} ms")
 
     st.session_state.messages.append({"role": "assistant", "content": response_text})
 
-# 输入框每轮都渲染在底部，保证可连续提问
-if prompt := st.chat_input("继续提问，或输入顾客/坐席的问题…"):
+if prompt := st.chat_input("输入顾客或坐席问题，支持连续追问…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.rerun()
 
-# 空会话时显示快捷示例
 if not st.session_state.messages:
-    st.divider()
-    st.markdown("**示例问题（点击快捷填入）**")
+    st.markdown(
+        '<p class="ek-section-title">快速发起问询</p>',
+        unsafe_allow_html=True,
+    )
     cols = st.columns(len(example_questions))
     for col, q in zip(cols, example_questions):
         if col.button(q, key=f"ex_{q}"):
