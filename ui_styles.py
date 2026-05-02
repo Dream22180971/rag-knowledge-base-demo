@@ -6,7 +6,110 @@ from typing import List, Tuple
 import streamlit as st
 
 
-def inject_enterprise_theme() -> None:
+# 深色模式：在浅色样式之上追加覆盖（减少重复维护）
+DARK_THEME_EXTRA = """
+<style>
+  .stApp {
+    background: linear-gradient(180deg, #0b1220 0%, #0f172a 40%, #111827 100%) !important;
+  }
+  header[data-testid="stHeader"] {
+    background: rgba(15, 23, 42, 0.92) !important;
+    border-bottom: 1px solid #1e293b !important;
+  }
+  section.main .block-container,
+  section.main .stMarkdown,
+  section.main p, section.main span,
+  section.main .stCaption {
+    color: #e2e8f0 !important;
+  }
+  section.main h1, section.main h2, section.main h3 {
+    color: #f8fafc !important;
+  }
+  [data-testid="stSidebar"] {
+    background: linear-gradient(195deg, #0f172a 0%, #111827 100%) !important;
+    border-right: 1px solid #1e293b !important;
+    box-shadow: 4px 0 32px rgba(0,0,0,0.35) !important;
+  }
+  [data-testid="stSidebar"] p,
+  [data-testid="stSidebar"] span,
+  [data-testid="stSidebar"] label,
+  [data-testid="stSidebar"] .stMarkdown {
+    color: #cbd5e1 !important;
+  }
+  [data-testid="stSidebar"] .stCaption {
+    color: #94a3b8 !important;
+  }
+  [data-testid="stSidebar"] hr {
+    border-color: #334155 !important;
+  }
+  [data-testid="stSidebar"] [data-baseweb="textarea"],
+  [data-testid="stSidebar"] input {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border-color: #334155 !important;
+  }
+  [data-testid="stSidebar"] button[kind="secondary"] {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+  }
+  .ek-shell-bar {
+    border-bottom-color: #334155 !important;
+  }
+  .ek-shell-logo { color: #94a3b8 !important; }
+  .ek-shell-product { color: #f8fafc !important; }
+  .ek-shell-tagline { color: #94a3b8 !important; }
+  .ek-hero {
+    background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%) !important;
+    border-color: #334155 !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35) !important;
+  }
+  .ek-hero-title { color: #f8fafc !important; }
+  .ek-hero-sub { color: #94a3b8 !important; }
+  .ek-badge {
+    background: rgba(37, 99, 235, 0.25) !important;
+    border-color: rgba(96, 165, 250, 0.45) !important;
+    color: #bfdbfe !important;
+  }
+  .ek-badge-muted {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+  }
+  .ek-section-title { color: #94a3b8 !important; }
+  .streamlit-expanderHeader {
+    color: #e2e8f0 !important;
+  }
+  [data-testid="stChatMessage"] {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.25) !important;
+  }
+  [data-testid="stChatInput"] textarea {
+    background: #1e293b !important;
+    color: #f1f5f9 !important;
+    border-color: #475569 !important;
+  }
+  div[data-testid="column"] button {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+  }
+  div[data-testid="column"] button:hover {
+    border-color: #3b82f6 !important;
+    color: #93c5fd !important;
+  }
+  .ek-sidebar-brand { color: #64748b !important; }
+  .ek-sidebar-product { color: #f8fafc !important; }
+  .ek-hint { color: #94a3b8 !important; }
+  /* 侧栏顶部品牌行（内联 flex）在深色下可读性 */
+  [data-testid="stSidebar"] div[style*="display:flex"] p { color: #e2e8f0 !important; }
+  [data-testid="stSidebar"] div[style*="display:flex"] p[style*="0.65rem"] { color: #94a3b8 !important; }
+</style>
+"""
+
+
+def inject_enterprise_theme(theme: str = "light") -> None:
     st.markdown(
         """
 <style>
@@ -309,6 +412,8 @@ def inject_enterprise_theme() -> None:
         """,
         unsafe_allow_html=True,
     )
+    if theme == "dark":
+        st.markdown(DARK_THEME_EXTRA, unsafe_allow_html=True)
 
 
 def shell_header_html(

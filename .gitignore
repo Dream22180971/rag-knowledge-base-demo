@@ -21,6 +21,9 @@ faiss_index.pkl
 knowledge/texts/uploads/*
 !knowledge/texts/uploads/.gitkeep
 
+# 本地会话持久化（按用户名）
+data/
+
 # Streamlit
 .streamlit/
 

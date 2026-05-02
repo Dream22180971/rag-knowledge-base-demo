@@ -5,7 +5,11 @@
 
 ## ✨ 功能特性
 
-- **多格式文档**：`knowledge/texts/` 下 Markdown、TXT；`knowledge/pdfs/` 下 PDF（可选）
+- **品牌与导航**：内联 SVG 品牌标、顶栏状态、侧栏按 **外观 / 账户与组织 / 会话 / 知识域 / 文档 / 帮助** 分区
+- **简易登录**：首屏登录（默认账号密码见 `.env.example` 的 `DEMO_USERNAME` / `DEMO_PASSWORD`，未配置时 `demo` / `demo`）
+- **多会话与历史**：「新对话」、**历史会话**下拉切换；会话列表按用户持久化到本地 `data/sessions_*.json`（演示级，非多机同步）
+- **深色 / 浅色**：侧栏一键切换主题（含主区、侧栏、聊天气泡联动样式）
+- **多格式文档**：`knowledge/texts/` 下 Markdown、TXT、**Word docx**；`knowledge/pdfs/` 下 PDF（可选）
 - **上传 + 自动清洗**：侧栏上传 **PDF / Word(docx) / MD / TXT**，规则清洗后写入 `texts/uploads/`。PDF 使用 **PyMuPDF + pypdf** 双引擎抽取（优于单一 PyPDF）；**扫描版整图 PDF 仍可能无文字层**，需 OCR 或先导出可复制文本的 PDF（本仓库不含 OCR）
 - **加载时清洗**：`load_documents` 默认对正文做与上传一致的轻量清洗（`CLEAN_DOCUMENTS_ON_LOAD=0` 可关）
 - **多厂商对话模型**：`llm_providers` 统一入口，默认 **阿里通义**；可切换智谱、月之暗面（OpenAI 兼容）、**字节方舟/豆包等**（`LLM_PROVIDER=openai_compatible` + 兼容 Base URL）。**向量嵌入仍固定 DashScope**，换嵌入须重建索引
@@ -43,19 +47,18 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-### 2. 配置 API Key
+### 2. 配置环境变量
 
 ```bash
 copy .env.example .env
 ```
 
-编辑 `.env`，**索引与嵌入**至少填写：
+编辑 `.env`：
 
-```env
-DASHSCOPE_API_KEY=你的_KEY
-```
+- **登录（演示）**：`DEMO_USERNAME` / `DEMO_PASSWORD`（可省略，默认 `demo` / `demo`）
+- **索引与嵌入**（必需）：`DASHSCOPE_API_KEY=你的_KEY`
 
-对话模型默认走阿里通义（同上 Key）；若改用智谱 / Moonshot / 方舟等，见 `.env.example` 内注释。
+对话模型默认走阿里通义；若改用智谱 / Moonshot / 方舟等，见 `.env.example` 内注释。
 
 获取 DashScope Key：[阿里云 DashScope 控制台](https://dashscope.console.aliyun.com/)
 
@@ -65,7 +68,7 @@ DASHSCOPE_API_KEY=你的_KEY
 streamlit run app.py
 ```
 
-Windows 可双击 `start_app.bat`。浏览器访问 `http://localhost:8501`。
+Windows 可双击 `start_app.bat`。浏览器访问 `http://localhost:8501`，**先登录**再使用控制台。
 
 ### 4. 首次索引
 
@@ -82,21 +85,22 @@ Windows 可双击 `start_app.bat`。浏览器访问 `http://localhost:8501`。
 
 ```
 rag-knowledge-base-demo/
-├── app.py                  # Streamlit 主界面
+├── app.py                  # 主入口：登录门闸 + 问答
+├── auth_ui.py              # 登录页
+├── session_manager.py      # 多会话与本地持久化
+├── sidebar_ui.py           # 侧栏分区 UI
+├── brand_assets.py         # 品牌 SVG 与内联图
+├── assets/logo_icon.svg    # 页签图标
 ├── config.py               # 品牌与检索参数
-├── document_cleaning.py    # 文本清洗
-├── upload_handler.py       # 上传落盘
-├── ui_styles.py            # 企业级界面 CSS 与顶栏 HTML
-├── llm_providers.py        # 对话模型工厂（默认通义）
-├── rag_pipeline_faiss.py   # RAG 流水线
-├── requirements.txt
-├── .env.example
-├── .gitignore
-├── start_app.bat
+├── document_cleaning.py
+├── text_extract.py
+├── upload_handler.py
+├── ui_styles.py            # 主题（浅/深）
+├── llm_providers.py
+├── rag_pipeline_faiss.py
+├── data/                   # 会话 JSON（.gitignore）
 ├── knowledge/
-│   └── texts/
-│       ├── *.md            # 内置「云栖杂货铺」三篇
-│       └── uploads/        # 侧栏上传生成（默认 git 忽略内容）
+│   └── texts/ …
 └── README.md
 ```
 
