@@ -17,6 +17,10 @@ faiss_index.pkl
 .vscode/
 .idea/
 
+# 用户上传的清洗后文档（保留目录占位）
+knowledge/texts/uploads/*
+!knowledge/texts/uploads/.gitkeep
+
 # Streamlit
 .streamlit/
 

@@ -1,5 +1,6 @@
 """
 企业级电商知识库问答助手 — Streamlit 控制台（本地调试入口）
+支持多轮对话：底部输入框常驻，上文传入模型与检索增强。
 """
 import glob
 import os
@@ -7,16 +8,20 @@ import os
 import streamlit as st
 
 from config import KB_BRAND_NAME, KB_SCENE_DESC, PAGE_ICON, PAGE_TITLE
+from llm_providers import describe_active_provider
 from rag_pipeline_faiss import (
     build_index,
     get_index_meta,
     load_documents,
     rag_pipeline,
+    reset_vectorstore_cache,
     split_documents,
 )
+from upload_handler import persist_uploaded_document
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 KNOWLEDGE_DIR = os.path.join(PROJECT_ROOT, "knowledge")
+UPLOAD_DIR = os.path.join(KNOWLEDGE_DIR, "texts", "uploads")
 
 st.set_page_config(
     page_title=PAGE_TITLE,
@@ -47,6 +52,33 @@ with st.sidebar:
         + glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.pdf"), recursive=True)
     )
     st.caption(f"已扫描知识库文件：**{len(files)}** 个")
+    st.caption(describe_active_provider() + " · 向量嵌入：DashScope（换嵌入模型须重建索引）")
+
+    st.divider()
+    st.subheader("文档上传（自动清洗）")
+    st.caption(
+        "支持 PDF / MD / TXT：抽取正文后规范化空白与换行，保存到 `knowledge/texts/uploads/`。"
+        "PDF 无 OCR；上传后请 **重新构建索引**。"
+    )
+    uploaded_file = st.file_uploader(
+        "选择文件",
+        type=["pdf", "md", "txt", "markdown"],
+        accept_multiple_files=False,
+        label_visibility="collapsed",
+    )
+    if uploaded_file is not None and st.button("导入知识库（清洗并保存）", use_container_width=True):
+        try:
+            saved = persist_uploaded_document(
+                uploaded_file.getvalue(),
+                uploaded_file.name,
+                UPLOAD_DIR,
+            )
+            reset_vectorstore_cache()
+            st.success(
+                f"已写入 `{os.path.basename(saved)}`。请点击下方 **重新构建索引** 后新知识方可被检索。"
+            )
+        except Exception as e:
+            st.error(f"导入失败：{e}")
 
     st.divider()
 
@@ -71,6 +103,10 @@ with st.sidebar:
                     st.rerun()
         except Exception as e:
             st.error(f"构建失败：{e}")
+
+    if st.button("清空会话", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
 
     st.divider()
     st.markdown(
@@ -97,7 +133,8 @@ with st.sidebar:
 # ============================================================
 st.title(f"{PAGE_ICON} {PAGE_TITLE}")
 st.caption(
-    f"{KB_BRAND_NAME} · LangChain · FAISS · DashScope（通义）· 检索增强生成"
+    f"{KB_BRAND_NAME} · LangChain · FAISS · {describe_active_provider()} · "
+    f"向量 DashScope · RAG · 多轮对话 · 上传清洗"
 )
 
 with st.expander("关于本助手（企业级演示说明）", expanded=False):
@@ -105,6 +142,10 @@ with st.expander("关于本助手（企业级演示说明）", expanded=False):
         f"""
 本助手面向 **企业电商客服知识库** 场景：基于 **{KB_BRAND_NAME}** 虚构政策文档进行问答演示，
 知识范围限定为已入库的 Markdown（售前、配送退换、售后客诉）。回答须引用库内依据；超出范围时应提示用户转人工。
+
+支持 **连续多轮提问**（如「那不满 99 元呢？」）：底部输入框会始终显示；模型会结合上文理解指代，检索亦会参考最近几轮以提升召回。
+
+侧栏支持 **文档上传 + 自动清洗**（轻量规则，非 OCR）；招聘 JD 中较重的混合检索 / Rerank / 图谱 / 多租户等未在本演示实现，可作为扩展叙述。
 
 **非生产环境**：无账号体系、无工单对接；上线前请替换为真实知识源并完成安全与合规评审。
         """
@@ -120,35 +161,24 @@ example_questions = [
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-need_auto_answer = (
-    len(st.session_state.messages) > 0
-    and st.session_state.messages[-1]["role"] == "user"
-    and (
-        len(st.session_state.messages) == 1
-        or st.session_state.messages[-2]["role"] == "assistant"
-    )
-)
-prompt = None
-
+# 先渲染已有对话（仅文本；来源展开仅在当轮生成时展示）
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-if need_auto_answer:
-    prompt = st.session_state.messages[-1]["content"]
-else:
-    input_prompt = st.chat_input("请输入顾客或坐席的提问…")
-    if input_prompt:
-        prompt = input_prompt
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+# 当最后一条来自用户、尚未生成助手回复时，在本轮完成 RAG
+if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+    user_text = st.session_state.messages[-1]["content"]
+    history = st.session_state.messages[:-1]
 
-if prompt:
     with st.chat_message("assistant"):
         with st.spinner("检索知识库并生成回答…"):
             try:
-                result = rag_pipeline(prompt, knowledge_dir=KNOWLEDGE_DIR)
+                result = rag_pipeline(
+                    user_text,
+                    knowledge_dir=KNOWLEDGE_DIR,
+                    chat_history=history,
+                )
             except Exception as e:
                 import traceback
 
@@ -156,9 +186,9 @@ if prompt:
                 st.error(f"运行异常：{e}")
                 if debug:
                     st.code(err_detail)
-                response_text = f"系统错误：{e}"
+                err_text = f"系统错误：{e}"
                 st.session_state.messages.append(
-                    {"role": "assistant", "content": response_text}
+                    {"role": "assistant", "content": err_text}
                 )
                 st.stop()
 
@@ -185,6 +215,12 @@ if prompt:
 
     st.session_state.messages.append({"role": "assistant", "content": response_text})
 
+# 输入框每轮都渲染在底部，保证可连续提问
+if prompt := st.chat_input("继续提问，或输入顾客/坐席的问题…"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.rerun()
+
+# 空会话时显示快捷示例
 if not st.session_state.messages:
     st.divider()
     st.markdown("**示例问题（点击快捷填入）**")
