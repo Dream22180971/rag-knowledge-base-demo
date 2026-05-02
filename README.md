@@ -2,6 +2,8 @@
 
 > 基于 **LangChain + FAISS + DashScope（通义）+ Streamlit** 的检索增强生成（RAG）演示  
 > 场景：**电商售前 / 订单支付 / 配送退换 / 售后客诉**（当前知识库为虚构品牌「云栖杂货铺」政策文档，仅供学习与演示）
+<img width="1920" height="898" alt="image" src="https://github.com/user-attachments/assets/b4487e26-ccfc-4c89-bd17-95ec69de208e" />
+<img width="1920" height="911" alt="image" src="https://github.com/user-attachments/assets/84e3bb64-4865-4987-acb8-649a2d1793ec" />
 
 ## ✨ 功能特性
 
