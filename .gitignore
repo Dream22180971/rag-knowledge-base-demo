@@ -11,6 +11,7 @@ build/
 # 向量数据库（可重建）
 chroma_db/
 faiss_store/
+faiss_index.pkl
 
 # IDE
 .vscode/
