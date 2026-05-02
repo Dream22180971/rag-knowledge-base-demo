@@ -1,100 +1,132 @@
 """
-RAG Knowledge Base QA - Streamlit UI (FAISS)
+企业级电商知识库问答助手 — Streamlit 控制台（本地调试入口）
 """
+import glob
 import os
+
 import streamlit as st
+
+from config import KB_BRAND_NAME, KB_SCENE_DESC, PAGE_ICON, PAGE_TITLE
 from rag_pipeline_faiss import (
-    rag_pipeline, load_documents, split_documents, 
-    build_index, get_index_meta, get_vectorstore
+    build_index,
+    get_index_meta,
+    load_documents,
+    rag_pipeline,
+    split_documents,
 )
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 KNOWLEDGE_DIR = os.path.join(PROJECT_ROOT, "knowledge")
 
 st.set_page_config(
-    page_title="RAG 知识库问答",
-    page_icon="📚",
-    layout="centered",
-    initial_sidebar_state="expanded"
+    page_title=PAGE_TITLE,
+    page_icon=PAGE_ICON,
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 # ============================================================
 # Sidebar
 # ============================================================
 with st.sidebar:
-    st.header("📚 知识库管理")
-    
-    # Show index status
+    st.header("运维与知识库")
+    st.markdown(f"**品牌（演示）** · {KB_BRAND_NAME}")
+    st.caption(f"覆盖场景：{KB_SCENE_DESC}")
+
     meta = get_index_meta()
     if meta:
-        st.success(f"✅ 索引已就绪 | {meta['chunk_count']} chunks | 构建于 {meta.get('built_at','')}")
+        st.success(
+            f"索引可用 · **{meta['chunk_count']}** 片段 · 构建于 `{meta.get('built_at', '')}`"
+        )
     else:
-        st.info("⏳ 尚未构建索引，请点击下方按钮")
-    
-    # Count source files
-    import glob
-    files = (glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.md"), recursive=True) +
-             glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.txt"), recursive=True) +
-             glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.pdf"), recursive=True))
-    st.caption(f"知识库文件: {len(files)} 个")
-    
+        st.warning("尚未构建向量索引，请先点击下方按钮完成首次索引。")
+
+    files = (
+        glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.md"), recursive=True)
+        + glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.txt"), recursive=True)
+        + glob.glob(os.path.join(KNOWLEDGE_DIR, "**/*.pdf"), recursive=True)
+    )
+    st.caption(f"已扫描知识库文件：**{len(files)}** 个")
+
     st.divider()
-    
-    if st.button("🔄 重新构建索引", use_container_width=True):
+
+    if st.button("重新构建索引", type="primary", use_container_width=True):
         progress_bar = st.progress(0)
         status_text = st.empty()
-        
+
         def update_progress(msg, pct):
             progress_bar.progress(min(int(pct * 100), 100))
             status_text.text(msg)
-        
+
         try:
-            with st.spinner(""):
-                update_progress("正在扫描文档...", 0)
+            with st.spinner("构建中…"):
+                update_progress("扫描文档…", 0)
                 docs = load_documents(KNOWLEDGE_DIR, progress_callback=update_progress)
-                
                 if not docs:
-                    st.warning(f"未找到文档! 路径: {KNOWLEDGE_DIR}")
+                    st.warning(f"未加载到任何文档，请检查目录：{KNOWLEDGE_DIR}")
                 else:
                     chunks = split_documents(docs, progress_callback=update_progress)
                     build_index(chunks, progress_callback=update_progress)
-                    st.success(f"✅ 完成! {len(chunks)} 个文本块已索引")
+                    st.success(f"索引完成，共 **{len(chunks)}** 个文本块。")
                     st.rerun()
         except Exception as e:
-            st.error(f"构建失败: {e}")
-    
+            st.error(f"构建失败：{e}")
+
     st.divider()
-    st.markdown("""
-    ### 使用说明
-    1. 放文件到 `knowledge/` 目录
-    2. 点「重新构建索引」
-    3. 输入问题即可问答
-    
-    **首次构建较慢** (需调用API算向量)
-    之后秒加载
-    """)
+    st.markdown(
+        """
+**本地调试步骤**
+1. `copy .env.example .env` 并填写 `DASHSCOPE_API_KEY`
+2. `pip install -r requirements.txt`
+3. `streamlit run app.py` 或双击 `start_app.bat`
+4. 首次使用点击 **重新构建索引**
+        """
+    )
+
+    debug = st.checkbox("调试模式（显示路径与片段预览）", value=False)
+
+    if debug:
+        st.code(f"KNOWLEDGE_DIR =\n{KNOWLEDGE_DIR}", language="text")
+        if meta:
+            st.json(meta)
+        if files:
+            st.text("文件列表：\n" + "\n".join(os.path.basename(f) for f in sorted(files)))
 
 # ============================================================
 # Main
 # ============================================================
-st.title("📚 RAG 智能知识库问答")
-st.caption("LangChain + FAISS + DashScope | 检索增强生成 Demo")
+st.title(f"{PAGE_ICON} {PAGE_TITLE}")
+st.caption(
+    f"{KB_BRAND_NAME} · LangChain · FAISS · DashScope（通义）· 检索增强生成"
+)
+
+with st.expander("关于本助手（企业级演示说明）", expanded=False):
+    st.markdown(
+        f"""
+本助手面向 **企业电商客服知识库** 场景：基于 **{KB_BRAND_NAME}** 虚构政策文档进行问答演示，
+知识范围限定为已入库的 Markdown（售前、配送退换、售后客诉）。回答须引用库内依据；超出范围时应提示用户转人工。
+
+**非生产环境**：无账号体系、无工单对接；上线前请替换为真实知识源并完成安全与合规评审。
+        """
+    )
 
 example_questions = [
-    "这个产品的核心功能是什么?",
-    "退换货政策是怎样的?",
-    "如何联系客服?",
-    "支持哪些支付方式?",
+    "满多少元可以包邮？",
+    "签收后发现商品破损该怎么处理？",
+    "售后单状态「待寄回」是什么意思？",
+    "支持哪些支付方式？",
 ]
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Auto-answer: if last message is from user with no assistant reply, generate one
 need_auto_answer = (
-    len(st.session_state.messages) > 0 and 
-    st.session_state.messages[-1]["role"] == "user" and
-    (len(st.session_state.messages) == 1 or st.session_state.messages[-2]["role"] == "assistant")
+    len(st.session_state.messages) > 0
+    and st.session_state.messages[-1]["role"] == "user"
+    and (
+        len(st.session_state.messages) == 1
+        or st.session_state.messages[-2]["role"] == "assistant"
+    )
 )
 prompt = None
 
@@ -102,50 +134,62 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# If the last msg is user and has no assistant reply yet, auto-generate
 if need_auto_answer:
     prompt = st.session_state.messages[-1]["content"]
 else:
-    input_prompt = st.chat_input("请输入你的问题...")
+    input_prompt = st.chat_input("请输入顾客或坐席的提问…")
     if input_prompt:
         prompt = input_prompt
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-# Generate answer (from chat_input or example button auto-answer)
 if prompt:
     with st.chat_message("assistant"):
-        with st.spinner("检索中..."):
+        with st.spinner("检索知识库并生成回答…"):
             try:
                 result = rag_pipeline(prompt, knowledge_dir=KNOWLEDGE_DIR)
             except Exception as e:
                 import traceback
-                st.error(f"Error: {e}\n\n````\n{traceback.format_exc()}\n````")
-                response_text = f"ERROR: {e}"
-                st.session_state.messages.append({"role": "assistant", "content": response_text})
-                raise  # re-raise so streamlit shows it too
-        
+
+                err_detail = traceback.format_exc()
+                st.error(f"运行异常：{e}")
+                if debug:
+                    st.code(err_detail)
+                response_text = f"系统错误：{e}"
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": response_text}
+                )
+                st.stop()
+
         if "error" in result:
             st.error(result["error"])
             response_text = result["error"]
         else:
             st.markdown(result["answer"])
             response_text = result["answer"]
-            
-            with st.expander(f"Reference ({len(result['sources'])} sources)"):
+
+            with st.expander(
+                f"参考来源（{len(result['sources'])} 条）· 相似度分数越低通常越相关（内积/L2 依索引而定）"
+            ):
                 for i, src in enumerate(result["sources"], 1):
-                    st.markdown(f"**Source {i}** | score: `{src['score']}` | `{src['source']}`\n\n> {src['content'][:300]}")
+                    preview = src["content"][:500] + (
+                        "…" if len(src["content"]) > 500 else ""
+                    )
+                    st.markdown(
+                        f"**[{i}]** `{src['source']}` · score=`{src['score']}`\n\n> {preview}"
+                    )
                     st.divider()
-            
-            st.caption(f"Time: {result['elapsed_ms']}ms")
-    
+
+            st.caption(f"耗时：{result['elapsed_ms']} ms")
+
     st.session_state.messages.append({"role": "assistant", "content": response_text})
 
 if not st.session_state.messages:
     st.divider()
+    st.markdown("**示例问题（点击快捷填入）**")
     cols = st.columns(len(example_questions))
     for col, q in zip(cols, example_questions):
-        if col.button(q, key=q):
+        if col.button(q, key=f"ex_{q}"):
             st.session_state.messages.append({"role": "user", "content": q})
             st.rerun()

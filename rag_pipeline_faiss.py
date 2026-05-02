@@ -1,14 +1,16 @@
 """
-RAG 知识库核心模块 (FAISS 优化版)
-优化点：批量Embedding、索引缓存、跳过placeholder检查
+企业级电商知识库 RAG 核心模块（FAISS + DashScope）
+文档加载、切片、向量缓存、检索与带引用回答。
 """
 import os
 import json
 import time
-from typing import List, Optional
+from typing import List
 from dotenv import load_dotenv
 
 load_dotenv()
+
+from config import RAG_TOP_K
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 INDEX_DIR = os.path.join(PROJECT_ROOT, "faiss_store")
@@ -128,7 +130,8 @@ def build_index(chunks, progress_callback=None):
         "chunk_count": len(chunks),
         "built_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "embedding_model": os.getenv("EMBEDDING_MODEL", "text-embedding-v3"),
-        "build_time_sec": round(elapsed, 1)
+        "build_time_sec": round(elapsed, 1),
+        "knowledge_profile": "enterprise_ecommerce_demo",
     }
     with open(META_PATH, 'w', encoding='utf-8') as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
@@ -144,7 +147,7 @@ def get_index_meta():
     return None
 
 
-def search(query: str, top_k: int = 4) -> List[dict]:
+def search(query: str, top_k: int = RAG_TOP_K) -> List[dict]:
     vectorstore = get_vectorstore()
     if vectorstore is None:
         return []
@@ -170,9 +173,11 @@ def generate_answer(question: str, context_chunks: List[dict]) -> str:
     for i, chunk in enumerate(context_chunks, 1):
         context_text += f"\n[source {i}] ({chunk['source']}):\n{chunk['content']}\n"
     
-    system_prompt = """You are a professional knowledge base QA assistant.
-Answer based ONLY on the provided reference info. Cite sources like [1][2].
-If info is insufficient, say so clearly. Be concise and precise."""
+    system_prompt = """你是企业电商客服知识库助手。请仅根据下方「参考信息」回答用户问题，不得编造未在参考中出现的价格、时效、电话、链接或政策。
+要求：
+- 用清晰、专业、礼貌的中文；适当分点说明。
+- 在句末或关键结论处用 [1][2] 等形式标注参考来源编号。
+- 若参考信息不足以回答，请直接说明「知识库中未找到相关说明」，并建议用户联系人工客服或查看订单页，不要猜测。"""
 
     llm = ChatTongyi(
         model=os.getenv("MODEL_NAME", "qwen-turbo"),
@@ -182,7 +187,9 @@ If info is insufficient, say so clearly. Be concise and precise."""
     
     response = llm.invoke([
         SystemMessage(content=system_prompt),
-        HumanMessage(content=f"References:\n{context_text}\n\nQuestion: {question}")
+        HumanMessage(
+            content=f"参考信息：\n{context_text}\n\n用户问题：{question}"
+        )
     ])
     return response.content
 
@@ -198,7 +205,7 @@ def rag_pipeline(question: str, knowledge_dir: str = "./knowledge") -> dict:
     if vectorstore is None:
         docs = load_documents(knowledge_dir)
         if not docs:
-            return {"error": "No documents found in knowledge/ directory"}
+            return {"error": "未在 knowledge/ 目录下找到可加载的文档，请检查 knowledge/texts/ 或 knowledge/pdfs/。"}
         chunks = split_documents(docs)
         build_index(chunks)
     
