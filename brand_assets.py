@@ -17,6 +17,23 @@ PRODUCT_SUITE_NAME = "Knowledge Studio"
 PRODUCT_SUITE_CN = "知识工作台"
 
 
+def login_brand_visual_html(svg_display_size: int = 80) -> str:
+    """登录页专用：直接嵌入 SVG（避免 data URI 在部分环境不显示）。"""
+    svg = LOGO_SVG.replace(
+        'width="120" height="120"',
+        f'width="{svg_display_size}" height="{svg_display_size}"',
+    )
+    return f"""
+<div class="ek-login-brand">
+  <div class="ek-login-brand-ring">{svg}</div>
+  <div class="ek-login-brand-text">
+    <div class="ek-login-brand-cn">{PRODUCT_SUITE_CN}</div>
+    <div class="ek-login-brand-en">{PRODUCT_SUITE_NAME}</div>
+  </div>
+</div>
+"""
+
+
 def logo_img_html(size_px: int = 44) -> str:
     """返回可直接放入 `st.markdown(..., unsafe_allow_html=True)` 的 img 标签。"""
     import urllib.parse

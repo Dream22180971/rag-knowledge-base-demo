@@ -5,6 +5,30 @@ from typing import List, Tuple
 
 import streamlit as st
 
+# 中文 + 拉丁混排（登录页与主应用共用，失败时回退到系统字体）
+ENTERPRISE_FONT_LINK = """
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+"""
+
+ENTERPRISE_FONT_FACE_CSS = """
+  html, body, .stApp,
+  button, input, textarea, select,
+  [data-testid="stMarkdownContainer"] {
+    font-family: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB",
+      "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif !important;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+  .ek-hero-title, .ek-login-brand-cn, .ek-sidebar-product {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .ek-login-brand-en, .ek-sidebar-brand {
+    letter-spacing: 0.12em;
+  }
+"""
+
 
 # 深色模式：在浅色样式之上追加覆盖（减少重复维护）
 DARK_THEME_EXTRA = """
@@ -15,6 +39,9 @@ DARK_THEME_EXTRA = """
   header[data-testid="stHeader"] {
     background: rgba(15, 23, 42, 0.92) !important;
     border-bottom: 1px solid #1e293b !important;
+  }
+  section[data-testid="stMain"] {
+    padding-top: 0.25rem !important;
   }
   section.main .block-container,
   section.main .stMarkdown,
@@ -48,10 +75,36 @@ DARK_THEME_EXTRA = """
     color: #f1f5f9 !important;
     border-color: #334155 !important;
   }
+  /* 侧栏：租户/下拉与 primary 与整体融合 */
+  [data-testid="stSidebar"] [data-baseweb="select"] > div,
+  [data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] > div {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #e2e8f0 !important;
+  }
+  [data-testid="stSidebar"] [data-baseweb="select"] svg {
+    fill: #94a3b8 !important;
+  }
+  [data-testid="stSidebar"] button[kind="primary"] {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.22) !important;
+  }
+  [data-testid="stSidebar"] button[kind="primary"] *,
+  [data-testid="stSidebar"] [data-testid^="stBaseButton-primary"] * {
+    color: #f8fafc !important;
+  }
   [data-testid="stSidebar"] button[kind="secondary"] {
     background: #1e293b !important;
     color: #e2e8f0 !important;
     border-color: #334155 !important;
+  }
+  [data-testid="stSidebar"] button[kind="secondary"] *,
+  [data-testid="stSidebar"] [data-testid^="stBaseButton-secondary"] * {
+    color: #e2e8f0 !important;
+  }
+  [data-testid="stSidebar"] [data-baseweb="switch"] {
+    background-color: #334155 !important;
   }
   .ek-shell-bar {
     border-bottom-color: #334155 !important;
@@ -67,9 +120,9 @@ DARK_THEME_EXTRA = """
   .ek-hero-title { color: #f8fafc !important; }
   .ek-hero-sub { color: #94a3b8 !important; }
   .ek-badge {
-    background: rgba(37, 99, 235, 0.25) !important;
-    border-color: rgba(96, 165, 250, 0.45) !important;
-    color: #bfdbfe !important;
+    background: rgba(99, 102, 241, 0.22) !important;
+    border-color: rgba(129, 140, 248, 0.45) !important;
+    color: #c7d2fe !important;
   }
   .ek-badge-muted {
     background: #1e293b !important;
@@ -77,6 +130,16 @@ DARK_THEME_EXTRA = """
     color: #cbd5e1 !important;
   }
   .ek-section-title { color: #94a3b8 !important; }
+  /* 展开器：避免浅色灰条 */
+  section.main .streamlit-expander {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    border-radius: 12px !important;
+  }
+  section.main .streamlit-expanderContent {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+  }
   .streamlit-expanderHeader {
     color: #e2e8f0 !important;
   }
@@ -85,10 +148,36 @@ DARK_THEME_EXTRA = """
     border-color: #334155 !important;
     box-shadow: 0 8px 28px rgba(0,0,0,0.25) !important;
   }
+  [data-testid="stChatMessage"] .stMarkdown,
+  [data-testid="stChatMessage"] p,
+  [data-testid="stChatMessage"] li {
+    color: #e2e8f0 !important;
+  }
+  [data-testid="stChatMessage"] code {
+    background: #0f172a !important;
+    color: #93c5fd !important;
+    border: 1px solid #334155 !important;
+  }
   [data-testid="stChatInput"] textarea {
     background: #1e293b !important;
     color: #f1f5f9 !important;
     border-color: #475569 !important;
+  }
+  /* 底部固定输入条：去除大块白底（多版本结构兼容） */
+  [data-testid="stBottom"] {
+    background: #0f172a !important;
+    border-top: 1px solid #1e293b !important;
+  }
+  [data-testid="stBottom"] > div {
+    background: #0f172a !important;
+  }
+  [data-testid="stChatInput"] {
+    background: transparent !important;
+  }
+  [data-testid="stChatInput"] > div {
+    background: #1e293b !important;
+    border-radius: 14px !important;
+    border: 1px solid #475569 !important;
   }
   div[data-testid="column"] button {
     background: #1e293b !important;
@@ -96,8 +185,9 @@ DARK_THEME_EXTRA = """
     border-color: #334155 !important;
   }
   div[data-testid="column"] button:hover {
-    border-color: #3b82f6 !important;
-    color: #93c5fd !important;
+    border-color: #6366f1 !important;
+    color: #c7d2fe !important;
+    background: #252f46 !important;
   }
   .ek-sidebar-brand { color: #64748b !important; }
   .ek-sidebar-product { color: #f8fafc !important; }
@@ -105,26 +195,33 @@ DARK_THEME_EXTRA = """
   /* 侧栏顶部品牌行（内联 flex）在深色下可读性 */
   [data-testid="stSidebar"] div[style*="display:flex"] p { color: #e2e8f0 !important; }
   [data-testid="stSidebar"] div[style*="display:flex"] p[style*="0.65rem"] { color: #94a3b8 !important; }
+  /* 主区竖向块默认白底去除（示例问题列等） */
+  [data-testid="stVerticalBlockBorderWrapper"] {
+    background: transparent !important;
+    border-color: #334155 !important;
+  }
 </style>
 """
 
 
 def inject_enterprise_theme(theme: str = "light") -> None:
+    st.markdown(ENTERPRISE_FONT_LINK, unsafe_allow_html=True)
     st.markdown(
         """
 <style>
-  html, body, .stApp {
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC",
-      "Microsoft YaHei", sans-serif !important;
-  }
-
+"""
+        + ENTERPRISE_FONT_FACE_CSS
+        + """
   #MainMenu { visibility: hidden; }
   footer { visibility: hidden; }
 
   .main .block-container {
-    padding-top: 1rem;
+    padding-top: 0.35rem;
     padding-bottom: 3rem;
     max-width: 1120px;
+  }
+  section[data-testid="stMain"] {
+    padding-top: 0.25rem !important;
   }
 
   /* 整体：浅灰画布 */
@@ -145,7 +242,7 @@ def inject_enterprise_theme(theme: str = "light") -> None:
     box-shadow: 4px 0 24px rgba(15, 23, 42, 0.04);
   }
   [data-testid="stSidebar"] .block-container {
-    padding-top: 1.35rem;
+    padding-top: 0.75rem;
     color: #334155 !important;
   }
   [data-testid="stSidebar"] p,
@@ -155,7 +252,7 @@ def inject_enterprise_theme(theme: str = "light") -> None:
     color: #475569 !important;
   }
   [data-testid="stSidebar"] .stCaption {
-    color: #64748b !important;
+    color: #475569 !important;
   }
   [data-testid="stSidebar"] hr {
     border-color: #e5e7eb !important;
@@ -177,12 +274,21 @@ def inject_enterprise_theme(theme: str = "light") -> None:
   }
 
   [data-testid="stSidebar"] button[kind="primary"] {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    background: linear-gradient(135deg, #4f46e5 0%, #5b4ae0 50%, #6366f1 100%) !important;
     border: none !important;
     border-radius: 11px !important;
     font-weight: 600 !important;
-    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.28);
-    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.2);
+    color: #fafafa !important;
+  }
+  [data-testid="stSidebar"] button[kind="primary"]:hover {
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.28) !important;
+    filter: brightness(1.03);
+  }
+  /* 侧栏 p/span 的通配字色会染到按钮内文（BaseWeb 多用 span 包字） */
+  [data-testid="stSidebar"] button[kind="primary"] *,
+  [data-testid="stSidebar"] [data-testid^="stBaseButton-primary"] * {
+    color: #fafafa !important;
   }
   [data-testid="stSidebar"] button[kind="secondary"] {
     background: #ffffff !important;
@@ -190,6 +296,10 @@ def inject_enterprise_theme(theme: str = "light") -> None:
     border: 1px solid #e2e8f0 !important;
     border-radius: 11px !important;
     font-weight: 500 !important;
+  }
+  [data-testid="stSidebar"] button[kind="secondary"] *,
+  [data-testid="stSidebar"] [data-testid^="stBaseButton-secondary"] * {
+    color: #334155 !important;
   }
   [data-testid="stSidebar"] button[kind="secondary"]:hover {
     border-color: #93c5fd !important;

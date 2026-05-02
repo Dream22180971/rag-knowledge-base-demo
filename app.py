@@ -15,7 +15,7 @@ from config import KB_BRAND_NAME, KB_SCENE_DESC, PAGE_ICON, PAGE_TITLE
 from rag_pipeline_faiss import get_index_meta, rag_pipeline
 from session_manager import bootstrap_sessions, persist_from_streamlit
 from sidebar_ui import render_sidebar
-from ui_styles import hero_html, inject_enterprise_theme, shell_header_html
+from ui_styles import hero_html, inject_enterprise_theme
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 KNOWLEDGE_DIR = os.path.join(PROJECT_ROOT, "knowledge")
@@ -52,16 +52,6 @@ debug = render_sidebar(KNOWLEDGE_DIR, UPLOAD_DIR)
 # ============================================================
 meta_main = get_index_meta()
 _idx_ok = meta_main is not None and meta_main.get("chunk_count", 0) > 0
-st.markdown(
-    shell_header_html(
-        suite_logo="Knowledge Studio",
-        suite_name="企业知识工作台",
-        tagline="智能问答 · 引用溯源 · 会话历史",
-        status_text="系统运行正常 · 索引就绪" if _idx_ok else "等待首次构建索引",
-        status_ok=_idx_ok,
-    ),
-    unsafe_allow_html=True,
-)
 
 _badge_list = [
     ("RAG", "primary"),
@@ -72,19 +62,19 @@ if meta_main:
     _badge_list.insert(0, (f"{meta_main['chunk_count']} 条索引", "primary"))
 else:
     _badge_list.insert(0, ("待构建索引", "muted"))
-
+_status_hint = "索引就绪 · 可直接提问" if _idx_ok else "请先于侧栏「重建索引」"
 st.markdown(
     hero_html(
         PAGE_ICON,
         PAGE_TITLE,
         KB_BRAND_NAME,
-        "选中左侧「历史会话」可回看；底部输入框支持连续追问",
+        f"{_status_hint} · 左侧切换「历史会话」· 底部连续追问",
         _badge_list,
     ),
     unsafe_allow_html=True,
 )
 
-with st.expander("一分钟上手", expanded=False):
+with st.expander("使用指南（必读）", expanded=False):
     st.markdown(
         f"""
 **三步开始**：① 侧栏 **重建索引** → ② 在下方提问或点示例 → ③ 需要新话题时点 **新对话**。  
