@@ -2,6 +2,7 @@
 
 > 基于 **LangChain + FAISS + DashScope + Streamlit** 的检索增强生成（RAG）演示项目\
 > 面试作品 — 对标「AI 智能体搭建 Agent」岗位 JD
+<img width="1920" height="911" alt="image" src="https://github.com/user-attachments/assets/1a199acc-8c4d-4692-9cf8-d0858d9cf4a7" />
 
 ## ✨ 功能特性
 
