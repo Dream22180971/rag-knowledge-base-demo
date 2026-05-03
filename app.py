@@ -3,15 +3,16 @@
 """
 from __future__ import annotations
 
+import html
 import os
+from datetime import datetime
 
 import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from auth_ui import render_login_page
-from config import KB_BRAND_NAME, KB_SCENE_DESC, PAGE_ICON, PAGE_TITLE
+from config import KB_BRAND_NAME, KB_SCENE_DESC, KB_SIMPLE_DESC, PAGE_ICON, PAGE_TITLE
 from rag_pipeline_faiss import get_index_meta, rag_pipeline
 from session_manager import bootstrap_sessions, persist_from_streamlit
 from sidebar_ui import render_sidebar
@@ -24,9 +25,11 @@ ICON_PATH = os.path.join(PROJECT_ROOT, "assets", "logo_icon.svg")
 _PAGE_ICON = ICON_PATH if os.path.isfile(ICON_PATH) else PAGE_ICON
 
 if "theme" not in st.session_state:
-    st.session_state.theme = "light"
+    st.session_state.theme = "dark"
 if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+    st.session_state.authenticated = True
+    st.session_state.username = "demo"
+    st.session_state.login_at = datetime.now().isoformat(timespec="seconds")
 
 st.set_page_config(
     page_title=PAGE_TITLE,
@@ -36,11 +39,7 @@ st.set_page_config(
 )
 inject_enterprise_theme(st.session_state.theme)
 
-if not st.session_state.authenticated:
-    render_login_page()
-    st.stop()
-
-# 登录后：加载会话树
+# 加载会话树
 if not st.session_state.get("chat_bootstrapped"):
     bootstrap_sessions(st.session_state, st.session_state.username)
     st.session_state.chat_bootstrapped = True
@@ -53,42 +52,30 @@ debug = render_sidebar(KNOWLEDGE_DIR, UPLOAD_DIR)
 meta_main = get_index_meta()
 _idx_ok = meta_main is not None and meta_main.get("chunk_count", 0) > 0
 
-_badge_list = [
-    ("RAG", "primary"),
-    ("多轮对话", "muted"),
-    ("DashScope 向量", "muted"),
-]
-if meta_main:
-    _badge_list.insert(0, (f"{meta_main['chunk_count']} 条索引", "primary"))
-else:
-    _badge_list.insert(0, ("待构建索引", "muted"))
-_status_hint = "索引就绪 · 可直接提问" if _idx_ok else "请先于侧栏「重建索引」"
+# 欢迎区域（小白友好）
 st.markdown(
-    hero_html(
-        PAGE_ICON,
-        PAGE_TITLE,
-        KB_BRAND_NAME,
-        f"{_status_hint} · 左侧切换「历史会话」· 底部连续追问",
-        _badge_list,
-    ),
+    f"""
+<div style="text-align:center;padding:2.5rem 0 1.5rem 0;">
+  <div style="font-size:2.2rem;margin-bottom:0.5rem;">💬</div>
+  <h2 style="margin:0 0 0.4rem 0;font-weight:700;letter-spacing:-0.02em;">
+    你好，我是{html.escape(KB_BRAND_NAME)}的智能客服
+  </h2>
+  <p style="margin:0;font-size:1rem;color:#6b7280;">
+    {html.escape(KB_SIMPLE_DESC)}
+  </p>
+</div>
+    """,
     unsafe_allow_html=True,
 )
 
-with st.expander("使用指南（必读）", expanded=False):
-    st.markdown(
-        f"""
-**三步开始**：① 侧栏 **重建索引** → ② 在下方提问或点示例 → ③ 需要新话题时点 **新对话**。  
-**当前知识域**：{KB_BRAND_NAME}（{KB_SCENE_DESC}）。事实以检索片段为准，超出范围请转人工。
-
-租户切换、审计等企业能力为后续规划；本环境为演示配置。
-        """
-    )
+if not _idx_ok:
+    st.warning("知识库尚未就绪，请在左下角「设置」中点击「重建索引」后再提问。")
 
 example_questions = [
-    "满多少元可以包邮？",
-    "签收后发现商品破损该怎么处理？",
-    "售后单状态「待寄回」是什么意思？",
-    "支持哪些支付方式？",
+    ("📦", "满多少元可以包邮？"),
+    ("🔧", "签收后发现商品破损该怎么处理？"),
+    ("📋", "售后单状态「待寄回」是什么意思？"),
+    ("💳", "支持哪些支付方式？"),
 ]
 
 for msg in st.session_state.messages:
@@ -150,12 +137,12 @@ if prompt := st.chat_input("输入问题，支持连续追问…"):
 
 if not st.session_state.messages:
     st.markdown(
-        '<p class="ek-section-title">快速发起问询</p>',
+        '<p class="ek-section-title" style="text-align:center;">试试问我</p>',
         unsafe_allow_html=True,
     )
     cols = st.columns(len(example_questions))
-    for col, q in zip(cols, example_questions):
-        if col.button(q, key=f"ex_{q}"):
+    for col, (icon, q) in zip(cols, example_questions):
+        if col.button(f"{icon}  {q}", key=f"ex_{q}", use_container_width=True):
             st.session_state.messages.append({"role": "user", "content": q})
             persist_from_streamlit(st.session_state, st.session_state.username)
             st.rerun()

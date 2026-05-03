@@ -179,19 +179,31 @@ DARK_THEME_EXTRA = """
     border-radius: 14px !important;
     border: 1px solid #475569 !important;
   }
-  div[data-testid="column"] button {
+  /* 深色模式按钮：通用覆盖 */
+  section.main button[kind="secondary"],
+  section.main [data-testid="stBaseButton-secondary"],
+  section.main div[data-testid="stColumn"] button {
     background: #1e293b !important;
     color: #e2e8f0 !important;
     border-color: #334155 !important;
   }
-  div[data-testid="column"] button:hover {
+  section.main button[kind="secondary"]:hover,
+  section.main div[data-testid="stColumn"] button:hover {
     border-color: #6366f1 !important;
     color: #c7d2fe !important;
     background: #252f46 !important;
   }
+  /* 深色模式：按钮内所有文字节点 */
+  section.main button[kind="secondary"] *,
+  section.main div[data-testid="stColumn"] button * {
+    color: #e2e8f0 !important;
+  }
   .ek-sidebar-brand { color: #64748b !important; }
   .ek-sidebar-product { color: #f8fafc !important; }
   .ek-hint { color: #94a3b8 !important; }
+  [data-testid="stSidebar"] .ek-sidebar-brand { color: #64748b !important; }
+  [data-testid="stSidebar"] .ek-sidebar-product { color: #f8fafc !important; }
+  [data-testid="stSidebar"] .ek-hint { color: #94a3b8 !important; }
   /* 侧栏顶部品牌行（内联 flex）在深色下可读性 */
   [data-testid="stSidebar"] div[style*="display:flex"] p { color: #e2e8f0 !important; }
   [data-testid="stSidebar"] div[style*="display:flex"] p[style*="0.65rem"] { color: #94a3b8 !important; }
@@ -502,7 +514,7 @@ def inject_enterprise_theme(theme: str = "light") -> None:
     box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
   }
 
-  div[data-testid="column"] button {
+  div[data-testid="stColumn"] button {
     border-radius: 11px !important;
     font-weight: 500 !important;
     border: 1px solid #e2e8f0 !important;
@@ -512,7 +524,7 @@ def inject_enterprise_theme(theme: str = "light") -> None:
     padding-bottom: 0.65rem !important;
     transition: all 0.18s ease;
   }
-  div[data-testid="column"] button:hover {
+  div[data-testid="stColumn"] button:hover {
     border-color: #3b82f6 !important;
     box-shadow: 0 6px 20px rgba(59, 130, 246, 0.14);
     color: #1e40af !important;

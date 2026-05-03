@@ -16,3 +16,6 @@ PAGE_ICON = os.getenv("KB_PAGE_ICON", "🛒")
 
 # 检索
 RAG_TOP_K = int(os.getenv("RAG_TOP_K", "4"))
+
+# 小白友好的一句话描述
+KB_SIMPLE_DESC = "你可以问我关于商品、订单、售后的任何问题"
