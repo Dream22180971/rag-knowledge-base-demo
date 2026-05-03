@@ -102,12 +102,12 @@ def render_sidebar(
         if _ids:
             _cur = st.session_state.current_session_id
             _idx = _ids.index(_cur) if _cur in _ids else 0
+            # 勿与 key 同时使用 index，否则会触发 session_state 与默认值的策略警告
             _choice = st.selectbox(
                 "历史会话",
                 _ids,
                 index=_idx,
                 format_func=lambda sid: session_label(st.session_state, sid),
-                key="ek_session_select",
             )
             if _choice != st.session_state.current_session_id:
                 persist_from_streamlit(st.session_state, st.session_state.username)
