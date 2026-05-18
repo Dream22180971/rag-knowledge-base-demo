@@ -245,26 +245,52 @@ def generate_answer(
 
 
 # ============================================================
-# 5. 完整 RAG 流水线
+# 5. 完整 RAG 流水线（带可视化步骤）
 # ============================================================
 def rag_pipeline(
     question: str,
     knowledge_dir: str = "./knowledge",
     chat_history: Optional[List[dict]] = None,
+    return_steps: bool = True,
 ) -> dict:
+    """
+    完整 RAG 流水线
+
+    Args:
+        question: 用户问题
+        knowledge_dir: 知识库目录
+        chat_history: 对话历史
+        return_steps: 是否返回详细执行步骤（用于可视化）
+
+    Returns:
+        dict: 包含 answer, sources, elapsed_ms, steps
+    """
+    from pipeline_steps import create_step, STEP_TEMPLATES
+
     t0 = time.time()
+    steps = []
 
-    # 1. Get or build index
-    vectorstore = get_vectorstore()
-    if vectorstore is None:
-        docs = load_documents(knowledge_dir)
-        if not docs:
-            return {"error": "未在 knowledge/ 目录下找到可加载的文档，请检查 knowledge/texts/ 或 knowledge/pdfs/。"}
-        chunks = split_documents(docs)
-        build_index(chunks)
+    # ============================================================
+    # Step 1: 查询分析
+    # ============================================================
+    step1_start = time.time()
+    # 提取关键词（简单实现）
+    keywords = _extract_keywords(question)
+    step1_ms = round((time.time() - step1_start) * 1000)
+    steps.append(create_step(
+        name=STEP_TEMPLATES["query_analysis"]["name"],
+        status="done",
+        detail=f"识别到关键词：{', '.join(keywords[:5])}" if keywords else "直接检索原问题",
+        time_ms=step1_ms,
+        icon=STEP_TEMPLATES["query_analysis"]["icon"],
+    ))
 
-    # 2. Search（多轮时用「上文摘要 + 当前问」增强检索，便于指代类追问命中）
+    # ============================================================
+    # Step 2: 对话上下文处理
+    # ============================================================
+    step2_start = time.time()
     retrieval_query = question
+    has_history = False
     if chat_history:
         tail = chat_history[-4:]
         prefix = "\n".join(
@@ -274,16 +300,143 @@ def rag_pipeline(
             for m in tail
         )
         retrieval_query = f"{prefix}\n当前问：{question}"[:2000]
+        has_history = True
+    step2_ms = round((time.time() - step2_start) * 1000)
+    steps.append(create_step(
+        name=STEP_TEMPLATES["history_context"]["name"],
+        status="done",
+        detail=f"使用最近 {len(chat_history)} 轮对话上下文增强检索" if has_history else "单轮问答，无需历史上下文",
+        time_ms=step2_ms,
+        icon=STEP_TEMPLATES["history_context"]["icon"],
+    ))
+
+    # ============================================================
+    # Step 3: 向量检索
+    # ============================================================
+    step3_start = time.time()
+    vectorstore = get_vectorstore()
+    if vectorstore is None:
+        docs = load_documents(knowledge_dir)
+        if not docs:
+            return {"error": "未在 knowledge/ 目录下找到可加载的文档，请检查 knowledge/texts/ 或 knowledge/pdfs/。"}
+        chunks = split_documents(docs)
+        build_index(chunks)
+        index_action = "构建新索引"
+    else:
+        chunk_count = vectorstore.index.ntotal if hasattr(vectorstore, 'index') else "?"
+        index_action = f"命中已有索引（{chunk_count} 条）"
 
     search_results = search(retrieval_query)
+    step3_ms = round((time.time() - step3_start) * 1000)
 
-    # 3. Generate
-    answer = generate_answer(question, search_results, chat_history=chat_history)
-    
+    # 构建检索详情
+    if search_results:
+        top_score = search_results[0]["score"]
+        sources = list(set(s["source"].split("/")[-1] for s in search_results))
+        detail = f"{index_action} → 返回 Top-{len(search_results)} 结果，最高相关度: {top_score}"
+    else:
+        detail = f"{index_action} → 未找到相关内容"
+
+    steps.append(create_step(
+        name=STEP_TEMPLATES["vector_search"]["name"],
+        status="done",
+        detail=detail,
+        time_ms=step3_ms,
+        icon=STEP_TEMPLATES["vector_search"]["icon"],
+    ))
+
+    # ============================================================
+    # Step 4: 上下文组装
+    # ============================================================
+    step4_start = time.time()
+    context_chunks = search_results[:RAG_TOP_K]
+    context_preview = _build_context_preview(context_chunks)
+    step4_ms = round((time.time() - step4_start) * 1000)
+    steps.append(create_step(
+        name=STEP_TEMPLATES["context_merge"]["name"],
+        status="done",
+        detail=f"组装 {len(context_chunks)} 个参考片段（共 {sum(len(c['content']) for c in context_chunks)} 字符）",
+        time_ms=step4_ms,
+        icon=STEP_TEMPLATES["context_merge"]["icon"],
+    ))
+
+    # ============================================================
+    # Step 5: LLM 生成
+    # ============================================================
+    step5_start = time.time()
+    answer = generate_answer(question, context_chunks, chat_history=chat_history)
+    step5_ms = round((time.time() - step5_start) * 1000)
+    steps.append(create_step(
+        name=STEP_TEMPLATES["llm_generate"]["name"],
+        status="done",
+        detail=f"生成 {len(answer)} 字符的回答",
+        time_ms=step5_ms,
+        icon=STEP_TEMPLATES["llm_generate"]["icon"],
+    ))
+
+    # ============================================================
+    # Step 6: 结果格式化
+    # ============================================================
+    step6_start = time.time()
+    formatted_answer = _format_answer_with_citations(answer, context_chunks)
+    step6_ms = round((time.time() - step6_start) * 1000)
+    steps.append(create_step(
+        name=STEP_TEMPLATES["answer_format"]["name"],
+        status="done",
+        detail=f"添加 {len(context_chunks)} 个引用标注",
+        time_ms=step6_ms,
+        icon=STEP_TEMPLATES["answer_format"]["icon"],
+    ))
+
     elapsed = round((time.time() - t0) * 1000)
-    return {
+    result = {
         "question": question,
-        "answer": answer,
-        "sources": search_results,
-        "elapsed_ms": elapsed
+        "answer": formatted_answer,
+        "sources": context_chunks,
+        "elapsed_ms": elapsed,
     }
+
+    if return_steps:
+        result["steps"] = steps
+
+    return result
+
+
+def _extract_keywords(text: str) -> List[str]:
+    """简单关键词提取（基于常见停用词过滤）"""
+    stop_words = {
+        "的", "了", "吗", "呢", "啊", "是", "在", "我", "你", "他", "她", "它",
+        "这", "那", "有", "和", "与", "或", "但", "如果", "可以", "怎么", "如何",
+        "什么", "为什么", "请问", "能", "想", "要", "会", "不会", "没", "没有",
+    }
+    # 简单分词
+    import re
+    words = re.findall(r'[一-鿿]+|[a-zA-Z]+', text)
+    keywords = [w for w in words if w not in stop_words and len(w) > 1]
+    return keywords[:10]
+
+
+def _build_context_preview(context_chunks: List[dict]) -> str:
+    """构建上下文预览（用于调试）"""
+    if not context_chunks:
+        return "无"
+    parts = []
+    for i, chunk in enumerate(context_chunks[:3], 1):
+        source = chunk["source"].split("/")[-1]
+        preview = chunk["content"][:50] + "..."
+        parts.append(f"[{i}] {source}: {preview}")
+    return "\n".join(parts)
+
+
+def _format_answer_with_citations(answer: str, context_chunks: List[dict]) -> str:
+    """给回答添加引用标注"""
+    # 如果回答已经包含 [1][2] 格式的引用，直接返回
+    if "[" in answer and "]" in answer:
+        return answer
+
+    # 否则添加来源说明
+    if context_chunks:
+        sources = list(set(c["source"].split("/")[-1] for c in context_chunks))
+        if sources:
+            answer += f"\n\n---\n*参考来源：{', '.join(sources)}*"
+    return answer

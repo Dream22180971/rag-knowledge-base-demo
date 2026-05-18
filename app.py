@@ -14,6 +14,7 @@ load_dotenv()
 
 from config import KB_BRAND_NAME, KB_SCENE_DESC, KB_SIMPLE_DESC, PAGE_ICON, PAGE_TITLE
 from rag_pipeline_faiss import get_index_meta, rag_pipeline
+from pipeline_steps import render_pipeline_steps
 from session_manager import bootstrap_sessions, persist_from_streamlit
 from sidebar_ui import render_sidebar
 from ui_styles import hero_html, inject_enterprise_theme
@@ -112,10 +113,14 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
             st.error(result["error"])
             response_text = result["error"]
         else:
+            # 渲染可视化执行步骤
+            if "steps" in result:
+                render_pipeline_steps(result["steps"], result["elapsed_ms"])
+
             st.markdown(result["answer"])
             response_text = result["answer"]
 
-            with st.expander(f"参考来源 · {len(result['sources'])} 条"):
+            with st.expander(f"📎 参考来源 · {len(result['sources'])} 条"):
                 for i, src in enumerate(result["sources"], 1):
                     preview = src["content"][:500] + (
                         "…" if len(src["content"]) > 500 else ""
@@ -125,7 +130,7 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
                     )
                     st.divider()
 
-            st.caption(f"响应耗时 {result['elapsed_ms']} ms")
+            st.caption(f"⏱ 总耗时 {result['elapsed_ms']} ms")
 
     st.session_state.messages.append({"role": "assistant", "content": response_text})
     persist_from_streamlit(st.session_state, st.session_state.username)
