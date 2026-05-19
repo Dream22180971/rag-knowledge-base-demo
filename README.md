@@ -1,196 +1,115 @@
-# 📚 RAG 智能知识库问答系统
+# RAG 智能知识库问答
 
-> 基于 **LangChain + FAISS + DashScope + Streamlit** 的检索增强生成（RAG）演示项目\
-> 面试作品 — 对标「AI 智能体搭建 Agent」岗位 JD
-<img width="1920" height="911" alt="image" src="https://github.com/user-attachments/assets/1a199acc-8c4d-4692-9cf8-d0858d9cf4a7" />
+> 把文档扔进去，AI 自动从你的知识库里找答案——支持 PDF、Markdown、TXT，3 步跑起来。
 
-## ✨ 功能特性
+[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![LangChain](https://img.shields.io/badge/LangChain-0.3-1C3C3C?style=flat)](https://langchain.com)
+[![FAISS](https://img.shields.io/badge/FAISS-Facebook-blue?style=flat)](https://faiss.ai/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.x-FF4B4B?style=flat&logo=streamlit)](https://streamlit.io)
 
-- 📄 **多格式文档支持**：PDF、Markdown、TXT 自动加载
-- 🔪 **智能文档切片**：基于语义的递归分块，保留上下文
-- 🔍 **语义向量检索**：FAISS 向量数据库，相似度精确匹配
-- 💬 **引用来源标注**：每条回答标注参考文档和置信度
-- 🌐 **Web 可视化界面**：Streamlit 聊天式 UI，手机端友好
-- ⚡ **一键部署**：3 步启动，无需复杂配置
-- 💾 **索引缓存**：首次构建后持久化，后续秒级启动
+<img width="1920" height="911" alt="RAG Demo 主界面" src="https://github.com/user-attachments/assets/1a199acc-8c4d-4692-9cf8-d0858d9cf4a7" />
 
-## 🏗 技术架构
+---
+
+## 目录
+
+- [它是什么](#它是什么)
+- [为什么做](#为什么做)
+- [核心功能](#核心功能)
+- [快速开始](#快速开始)
+- [使用流程](#使用流程)
+- [技术架构](#技术架构)
+- [技术难点](#技术难点)
+- [Roadmap](#roadmap)
+- [FAQ](#faq)
+- [谁适合用](#谁适合用)
+- [关于我](#关于我)
+
+---
+
+## 它是什么
+
+一个**基于 RAG 技术的知识库问答系统**，帮你做三件事：
+
+1. **上传文档**：PDF、Markdown、TXT，扔进去就行
+2. **智能问答**：问它任何问题，AI 从文档里找到相关内容再回答
+3. **查看来源**：每条回答都标注参考文档和置信度，不怕 AI 胡说
+
+不需要训练模型，不需要写代码，3 步就能跑起来。
+
+---
+
+## 为什么做
+
+ChatGPT 很强，但它不知道你公司的内部文档、你写的笔记、你的知识库。
+
+用大模型做知识库问答，核心问题是：**怎么让 AI 基于你的文档回答，而不是瞎编？**
+
+RAG（检索增强生成）就是解决这个问题的——先从文档里找到相关内容，再让 AI 基于这些内容回答。
+
+这个项目把 RAG 的完整链路跑通了：文档加载 → 切片 → 向量化 → 检索 → 生成，还加了可视化执行步骤，让你看到每一步在干什么。
+
+---
+
+## 核心功能
+
+| 你能做什么 | 说明 |
+|-----------|------|
+| **多格式文档** | PDF、Markdown、TXT 自动加载 |
+| **智能切片** | 按语义递归切割，保留上下文 |
+| **向量检索** | FAISS 语义搜索，精确匹配相关内容 |
+| **引用标注** | 每条回答标注参考文档和置信度 |
+| **可视化流水线** | 实时展示 RAG 每步执行状态和耗时 |
+| **索引缓存** | 首次构建后持久化，后续秒级启动 |
+
+---
+
+## 快速开始
+
+```bash
+# 1. 安装依赖
+pip install -r requirements.txt
+
+# 2. 配置 API Key
+copy .env.example .env
+# 编辑 .env，填入 DashScope API Key
+# 获取地址：https://dashscope.console.aliyun.com/
+
+# 3. 启动
+streamlit run app.py
+```
+
+浏览器自动打开 `http://localhost:8501`，即可体验。
+
+---
+
+## 使用流程
+
+1. **放入文档**：将知识文档放到 `knowledge/texts/`（支持 MD、TXT）或 `knowledge/pdfs/`
+2. **构建索引**：点击侧边栏「重新构建索引」
+3. **开始问答**：在聊天框输入问题，系统自动检索 + 生成回答
+4. **查看来源**：展开「参考来源」查看检索到的原文片段
+
+---
+
+## 技术架构
 
 ```
 用户提问 → 向量检索(FAISS) → 获取相关片段 → LLM生成回答(带引用)
 ```
 
-| 模块    | 技术                                       | 说明             |
-| ----- | ---------------------------------------- | -------------- |
-| 文档加载  | LangChain DirectoryLoader                | PDF/MD/TXT 多格式 |
-| 文本切片  | RecursiveCharacterTextSplitter           | 500字符/块，50重叠   |
-| 向量化   | DashScope Embeddings (text-embedding-v3) | 1536维语义向量      |
-| 向量存储  | FAISS + pickle                           | 本地持久化缓存        |
-| LLM   | DashScope Chat (qwen-turbo)              | 回答生成           |
-| 前端 UI | Streamlit Chat Interface                 | 移动端适配          |
-
-## 🚀 快速开始（3 步）
-
-### 第 1 步：安装依赖
-
-```bash
-pip install -r requirements.txt
-```
-
-### 第 2 步：配置 API Key
-
-```bash
-# 复制环境变量模板
-copy .env.example .env
-
-# 编辑 .env，填入你的 DashScope API Key
-DASHSCOPE_API_KEY=sk-your-api-key-here
-```
-
-> 💡 **DashScope 获取地址**：<https://dashscope.console.aliyun.com/>\
-> 新用户赠送额度足够跑通 Demo
-
-### 第 3 步：运行
-
-```bash
-streamlit run app.py
-# 或双击 start_app.bat
-```
-
-浏览器自动打开 `http://localhost:8501`，即可体验！
-
-## 📁 项目结构
-
-```
-rag-knowledge-base-demo/
-├── app.py                  # Streamlit Web 主界面
-├── rag_pipeline_faiss.py  # RAG 核心逻辑（加载/切片/检索/生成）
-├── pipeline_steps.py      # 🔄 RAG 流水线可视化组件（执行步骤展示）
-├── config.py              # 配置参数（品牌名、检索参数等）
-├── ui_styles.py           # 企业级 UI 主题样式
-├── sidebar_ui.py          # 侧边栏组件
-├── session_manager.py     # 会话管理
-├── document_cleaning.py   # 文档清洗
-├── text_extract.py        # 文本提取（PDF/Word）
-├── llm_providers.py       # LLM 模型管理
-├── brand_assets.py        # 品牌资源
-├── upload_handler.py      # 上传处理
-├── requirements.txt        # Python 依赖
-├── .env                   # 环境变量（API Key）
-├── .env.example           # 环境变量模板
-├── .gitignore             # Git 忽略配置
-├── start_app.bat          # Windows 一键启动脚本
-├── knowledge/             # 📂 知识库文档目录
-│   ├── texts/             # Markdown / TXT / Word 文件
-│   └── pdfs/              # PDF 文件
-└── README.md              # 本文件
-```
-
-## 🎯 使用流程
-
-1. **放入文档**：将你的知识文档放到 `knowledge/texts/`（支持 MD、TXT）
-2. **构建索引**：点击侧边栏「🔄 重新构建索引」按钮
-3. **开始问答**：在聊天框输入问题，系统自动检索 + 生成回答
-4. **查看来源**：展开「📎 参考来源」查看检索到的原文片段
-
-## 💡 核心代码说明
-
-### RAG 流水线（rag\_pipeline\_faiss.py）
-
-```python
-from rag_pipeline_faiss import RAGPipeline
-
-# 初始化（如有缓存则秒级加载）
-rag = RAGPipeline()
-
-# 一键调用完整 RAG 流程
-result = rag.query("如何申请退货？")
-
-print(result["answer"])       # 生成的回答
-print(result["sources"])      # 参考来源列表
-print(result["elapsed_ms"]) # 耗时（毫秒）
-```
-
-### 四个核心函数
-
-| 函数                        | 作用                         |
-| ------------------------- | -------------------------- |
-| `load_documents()`        | 从 knowledge/ 目录加载所有文档      |
-| `split_documents()`       | 智能切片为固定大小文本块               |
-| `build_index()`           | 构建 FAISS 向量索引              |
-| `search(query)`           | 语义向量搜索，返回 Top-K 相关片段       |
-| `generate_answer(q, ctx)` | 基于 Prompt + 上下文调用 LLM 生成回答 |
-
-### 索引缓存机制
-
-首次构建索引后会自动保存到 `faiss_index.pkl`，下次启动自动加载，无需重新调用 Embedding API。
-
-```python
-# 强制重新构建索引
-rag = RAGPipeline(force_rebuild=True)
-```
-
-## 🔧 技术难点与解决方案（面试话术）
-
-### 1. 向量数据库选型
-
-**问题**：ChromaDB 在 Windows 环境调用 `add_documents()` 时进程被 SIGKILL 终止
-
-**排查过程**：
-
-- 尝试不同版本的 langchain\_chroma、chromadb
-- 直接调用原始 chromadb 库同样崩溃
-- 怀疑是 Windows 兼容性问题
-
-**解决方案**：切换到 FAISS（Facebook AI Similarity Search）
-
-- 纯 Python 实现，跨平台兼容性好
-- 支持 `save_local()` / `load_local()` 持久化
-- 性能相当，功能完全满足需求
-
-### 2. Embedding 速度优化
-
-**问题**：text-embedding-v2 API 调用慢（每个 chunk 1-2 秒）
-
-**解决方案**：升级到 `text-embedding-v3`
-
-- 速度提升约 3 倍
-- 维度增加到 1536 维，语义表示更丰富
-
-### 3. 文档切片策略
-
-**问题**：切太大会丢失精度，切太小会丢失上下文
-
-**解决方案**：RecursiveCharacterTextSplitter
-
-- 按段落→句子→词的层级递归切割
-- chunk\_size=500, chunk\_overlap=50（10% 重叠保证连续性）
-- 保留原始文档的结构信息
-
-### 4. Prompt 工程
-
-**问题**：LLM 可能产生幻觉，回答超出知识库范围
-
-**解决方案**：结构化 System Prompt
-
-```
-你是一个基于知识库的问答助手。请只根据以下参考信息回答用户问题，不要编造内容。
-
-参考信息：
-{context}
-
-请在回答时标注来源。
-```
-
-## 🎨 界面预览
-
-### 主界面 - 聊天问答
-
-![RAG Demo UI](screenshot.png)
+| 模块 | 技术 | 说明 |
+|------|------|------|
+| 文档加载 | LangChain DirectoryLoader | PDF/MD/TXT 多格式 |
+| 文本切片 | RecursiveCharacterTextSplitter | 500字符/块，50重叠 |
+| 向量化 | DashScope Embeddings (text-embedding-v3) | 1536维语义向量 |
+| 向量存储 | FAISS + pickle | 本地持久化缓存 |
+| LLM | DashScope Chat (qwen-turbo) | 回答生成 |
+| 前端 UI | Streamlit Chat Interface | 移动端适配 |
 
 ### 可视化执行步骤
 
-每次问答都会在界面上展示 RAG 流水线的完整执行过程：
+每次问答都会展示 RAG 流水线的完整执行过程：
 
 ```
 🔄 执行流程                          ✓ 全部 6 步完成          总耗时 3200ms
@@ -198,68 +117,87 @@ rag = RAGPipeline(force_rebuild=True)
 🔍 查询分析                          2ms
    识别到关键词：如何, 退货, 申请
 ─────────────────────────────────────────────────────────────────────────
-💬 对话上下文                        0ms
-   单轮问答，无需历史上下文
-─────────────────────────────────────────────────────────────────────────
 🎯 向量检索                          450ms
-   命中已有索引（32 条） → 返回 Top-4 结果，最高相关度: 0.8521
-─────────────────────────────────────────────────────────────────────────
-📝 上下文组装                        1ms
-   组装 4 个参考片段（共 2000 字符）
+   命中已有索引（32 条） → 返回 Top-4 结果
 ─────────────────────────────────────────────────────────────────────────
 🤖 LLM 生成                          2800ms
    生成 256 字符的回答
-─────────────────────────────────────────────────────────────────────────
-📋 结果格式化                        0ms
-   添加 4 个引用标注
 ```
 
-### 侧边栏 - 知识库管理
+---
 
-- 显示索引状态（已索引 xx 个文档块）
-- 「🔄 重新构建索引」按钮
-- 使用说明
+## 技术难点
 
-## 📝 面试话术要点
+### 1. 向量数据库选型
 
-> **Q: 为什么用 FAISS 而不是 Chroma？**
->
-> A: 项目开发初期尝试了 ChromaDB，但在 Windows 环境稳定性存在问题的背景下，选择了更稳定且功能等价的 FAISS 作为替代。两个工具在向量检索的核心功能上是等价的，FAISS 在跨平台兼容性上更有优势。
+ChromaDB 在 Windows 环境不稳定，切换到 FAISS 后问题解决。FAISS 跨平台兼容性好，支持本地持久化，性能满足需求。
 
-> **Q: 项目的技术难点在哪里？**
->
-> A: 主要有三个挑战：
->
-> 1. **文档切片策略**：用 RecursiveCharacterTextSplitter 实现层级递归切割，设置 10% 重叠保证上下文连续性
-> 2. **检索质量调优**：通过调整 chunk\_size 和 top\_k 参数平衡召回率和精确度
-> 3. **索引缓存**：首次构建后持久化，避免重复调用 Embedding API
-> 4. **流程可视化**：设计了 6 步可视化流水线，实时展示 RAG 每步执行状态和耗时，便于调试和演示
+### 2. 文档切片策略
 
-> **Q: 可视化执行步骤有什么用？**
->
-> A: 可视化步骤有两个核心价值：
->
-> 1. **调试定位**：快速识别性能瓶颈（如 LLM 生成慢、检索命中率低）
-> 2. **面试演示**：清晰展示 RAG 技术栈的完整链路，体现工程化思维
+切太大会丢失精度，切太小会丢失上下文。用 `RecursiveCharacterTextSplitter` 按段落→句子→词递归切割，10% 重叠保证连续性。
 
-> **Q: 如果数据量大了怎么处理？**
->
-> A: 当前用 FAISS 本地存储适合百万级以下向量。如果量级更大，可以迁移到 Milvus、Pinecone 等分布式向量数据库，或者使用 FAISS 的 GPU 加速版本。
+### 3. 索引缓存
 
-## 🔜 扩展方向
+首次构建索引后自动保存到 `faiss_index.pkl`，下次启动自动加载，避免重复调用 Embedding API。
 
+```python
+# 强制重新构建索引
+rag = RAGPipeline(force_rebuild=True)
+```
+
+---
+
+## Roadmap
+
+- [x] 多格式文档支持（PDF/MD/TXT）
+- [x] FAISS 向量检索
+- [x] 可视化执行流水线
+- [x] 索引缓存机制
 - [ ] 支持 Word/Excel 文档解析
 - [ ] 多轮对话 + 上下文记忆
 - [ ] 对接企业微信/钉钉 Bot
-- [ ] 添加文档权限管理
 - [ ] 支持多知识库切换
-- [ ] 添加对话日志与分析
 - [ ] 部署到云服务器（Docker）
 
-***
+---
 
-*本项目作为 AI Agent 岗位面试作品开发*
+## FAQ
 
-**作者**：seanwalter (Dream22180971)\
-**日期**：2026年4月\
-**GitHub**：<https://github.com/Dream22180971/rag-knowledge-base-demo>
+**Q: 需要 GPU 吗？**
+A: 不需要。Embedding 和 LLM 都通过 DashScope API 调用，本地只跑 Streamlit 和 FAISS。
+
+**Q: 支持多少文档？**
+A: FAISS 本地存储适合百万级以下向量。量级更大可以迁移到 Milvus、Pinecone 等分布式向量数据库。
+
+**Q: 没有 DashScope API Key 能用吗？**
+A: 不能。这个项目依赖 DashScope 的 Embedding 和 Chat 模型。
+
+**Q: 回答不准怎么办？**
+A: 检查文档切片是否合理，调整 `chunk_size` 和 `top_k` 参数。可视化流水线能帮你定位问题。
+
+---
+
+## 谁适合用
+
+- **想学 RAG 的人**：从文档加载到向量检索的完整链路，适合入门
+- **面试准备者**：RAG + LangChain + FAISS 的实战项目，有面试话术
+- **需要内部知识库的团队**：直接拿去改，接入自己的文档
+- **Python 开发者**：Streamlit + LangChain 的集成参考
+
+---
+
+## 关于我
+
+我是**肖恩沃尔特**（Sean Walter），一个从测试工程师正在转型为 AI 独立开发者的程序员。
+
+这个项目是我学习 RAG 技术的练兵场——把"文档加载 → 切片 → 向量化 → 检索 → 生成"的完整链路跑通，还加了可视化方便调试和演示。
+
+- GitHub: [Dream22180971](https://github.com/Dream22180971)
+- Twitter/X: [@sean_walter0717](https://x.com/sean_walter0717)
+- 博客: [seanwalter.top](https://seanwalter.top)
+
+---
+
+## License
+
+[MIT](./LICENSE)
