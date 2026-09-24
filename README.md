@@ -1,3 +1,37 @@
+Drop in your documents and ask grounded questions with a lightweight RAG stack. / 把文档扔进去，用轻量 RAG 系统进行可追溯知识库问答。
+
+<!-- README-V2-BILINGUAL -->
+
+# rag-knowledge-base-demo
+
+> **EN:** Drop in your documents and ask grounded questions with a lightweight RAG stack.  
+> **中文：** 把文档扔进去，用轻量 RAG 系统进行可追溯知识库问答。
+
+## Demo / 演示
+
+Existing main-interface screenshot is kept below; no GIF/video is currently stored in the repo. / 现有主界面截图保留在下方，仓库当前没有 GIF/视频。
+
+## Quick Start / 5 分钟快速开始
+
+```bash
+git clone https://github.com/Dream22180971/rag-knowledge-base-demo.git
+cd rag-knowledge-base-demo
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+> **EN:** The commands above are intentionally kept short: clone, install, run. Project-specific configuration and advanced usage stay in the detailed documentation below.  
+> **中文：** 上面的命令刻意保持最短路径：克隆、安装、运行。项目特定配置与高级用法继续保留在下方详细文档中。
+
+## Why this project / 为什么做这个项目
+
+**EN:** This repository is built around one concrete problem and aims to be understandable, runnable and useful before becoming complex.
+
+**中文：** 这个仓库围绕一个明确问题构建，优先做到易理解、能运行、真正有用，再逐步增加复杂能力。
+
+---
+
+<!-- ORIGINAL-DOCS -->
 # RAG 智能知识库问答
 
 > 把文档扔进去，AI 自动从你的知识库里找答案——支持 PDF、Markdown、TXT，3 步跑起来。
