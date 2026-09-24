@@ -20,6 +20,39 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+> **EN:** Clone, install, run. Advanced configuration and project-specific details are documented below.  
+> **中文：** 克隆、安装、运行即可开始。高级配置和项目特定说明继续保留在下方。
+
+## Why this project / 为什么做这个项目
+
+**EN:** This project starts from one concrete problem and prioritizes being understandable, runnable and useful before becoming complex.
+
+**中文：** 这个项目从一个明确问题出发，优先做到易理解、能运行、真正有用，再逐步增加复杂能力。
+
+---
+
+Drop in your documents and ask grounded questions with a lightweight RAG stack. / 把文档扔进去，用轻量 RAG 系统进行可追溯知识库问答。
+
+<!-- README-V2-BILINGUAL -->
+
+# rag-knowledge-base-demo
+
+> **EN:** Drop in your documents and ask grounded questions with a lightweight RAG stack.  
+> **中文：** 把文档扔进去，用轻量 RAG 系统进行可追溯知识库问答。
+
+## Demo / 演示
+
+Existing main-interface screenshot is kept below; no GIF/video is currently stored in the repo. / 现有主界面截图保留在下方，仓库当前没有 GIF/视频。
+
+## Quick Start / 5 分钟快速开始
+
+```bash
+git clone https://github.com/Dream22180971/rag-knowledge-base-demo.git
+cd rag-knowledge-base-demo
+pip install -r requirements.txt
+streamlit run app.py
+```
+
 > **EN:** The commands above are intentionally kept short: clone, install, run. Project-specific configuration and advanced usage stay in the detailed documentation below.  
 > **中文：** 上面的命令刻意保持最短路径：克隆、安装、运行。项目特定配置与高级用法继续保留在下方详细文档中。
 
